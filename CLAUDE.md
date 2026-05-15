@@ -85,10 +85,27 @@ The three PDFs are the only specs available. Extracted plain-text copies are kep
 
 To regenerate the `.txt` files: `pdftotext -layout <file>.pdf` (requires `poppler-utils`).
 
-## When code lands here
+## Build, lint, test
 
-Until a build system exists, there are no build/lint/test commands to document. When the first source code is added, update this file with:
+Stack: **Python ≥ 3.12**, **pyserial 3.x**, **DT ASCII protocol** (locked — never emit OEM frames from this codebase; the firmware locks to the first variant per power cycle). Architecture and rationale are in [DESIGN.md](DESIGN.md).
 
-- Build/run/test commands and how to run a single test
-- The serial library/transport chosen (since the choice between writing a thin protocol shim vs. wrapping a vendor SDK changes the architecture significantly)
-- Which ASCII protocol variant (DT vs OEM) the controller emits — they are not interchangeable mid-session
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -e ".[dev]"
+
+.venv/bin/ruff check src tests          # lint
+.venv/bin/ruff format --check src tests # format check (no rewrites)
+.venv/bin/mypy                          # strict types on src/sy01b
+.venv/bin/pytest                        # full suite
+.venv/bin/pytest tests/test_identity.py::TestIndividualIdentityProbes::test_serial_number_round_trips  # single test
+.venv/bin/pytest --cov=sy01b --cov-report=term-missing                                                  # with coverage
+```
+
+The CLI is installed as `sy01b-diagnose` — a read-only commissioning probe. Run with `--help` for usage. It **never** sends `R`, `Z`, `Y`, or `W` (enforced by the test suite, not just convention).
+
+Coverage targets: 90 % on `src/sy01b/` excluding `transport.py`'s real-serial paths (HIL only). Current: 87 % overall, ~95 % excluding transport.
+
+## Commit boundaries seen so far
+
+- **Planning trio commit:** DESIGN.md, ToDo.md, LearnedPatterns.md.
+- **Read-only API commit:** scaffolding + everything needed to open a port, run diagnose, retrieve software version (`?23`) and serial number (`?202`). Motion methods (`initialize`, `aspirate_uL`, `dispense_uL`, `abort`) are intentionally *not* shipped yet and the test suite asserts they are absent (`TestNoMotionCommandsExposed`). They land in a later commit with their own HIL-mock test plan.

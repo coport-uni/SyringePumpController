@@ -1,0 +1,92 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sy01b"
+version = "0.1.0.dev0"
+description = "Python controller for the Runze SY-01B Smart Syringe Pump (DT ASCII protocol over RS-232/USB-CH340)."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Proprietary" }
+authors = [{ name = "coport-uni" }]
+keywords = ["syringe-pump", "runze", "sy-01b", "rs-232", "serial", "ch340"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: System :: Hardware :: Hardware Drivers",
+]
+dependencies = [
+    "pyserial>=3.5",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "types-pyserial>=3.5",
+]
+
+[project.scripts]
+sy01b-diagnose = "sy01b.cli.diagnose:main"
+
+[project.urls]
+Homepage = "https://github.com/coport-uni/SyringePumpController"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sy01b"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",      # pycodestyle + pyflakes
+    "I",                # isort
+    "B",                # bugbear
+    "UP",               # pyupgrade
+    "SIM",              # simplify
+    "RUF",              # ruff-specific
+    "N",                # pep8-naming
+    "C4",               # comprehensions
+    "PT",               # pytest
+    "PIE",              # misc
+    "RET",              # returns
+]
+ignore = [
+    "E501",             # line too long (handled by formatter)
+    "N815",             # mixedCase var (syringe_uL in PumpConfig is intentional)
+    "N818",             # error-class naming (TransportTimeout/TransportClosed read better as-is)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "S101",
+    "N802",             # test methods may include uppercase tokens like "R" or "OEM"
+]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src/sy01b"]
+warn_unused_ignores = true
+warn_redundant_casts = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
+filterwarnings = ["error"]
