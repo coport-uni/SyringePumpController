@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import sys
 
-from sy01b import Pump
+from sy01b import SyringePumpController
 
 
 def main() -> int:
@@ -19,16 +19,16 @@ def main() -> int:
         format="%(asctime)s %(levelname)-7s %(name)s: %(message)s",
         stream=sys.stderr,
     )
-    cfg = Pump.Config(
+    cfg = SyringePumpController.Config(
         port="/dev/ttyUSB1",
         address=1,
         baud=9600,
         syringe_uL=125,
-        step_mode=Pump.StepMode.NORMAL,
+        step_mode=SyringePumpController.StepMode.NORMAL,
         reply_timeout_s=2.0,
     )
 
-    with Pump.open(cfg) as pump:
+    with SyringePumpController.open(cfg) as pump:
         software_version = pump.query_software_version()
         serial_number = pump.query_serial_number()
 

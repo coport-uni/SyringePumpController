@@ -2,8 +2,8 @@
 
 Everything the controller needs — enums, dataclasses, exceptions, command
 constants, frame builder/parser, the serial I/O loop, the read-only query
-methods, and the diagnostic flow — lives on the `Pump` class. Operators
-import a single name: `from sy01b import Pump`.
+methods, and the diagnostic flow — lives on the `SyringePumpController`
+class. Operators import a single name: `from sy01b import SyringePumpController`.
 
 Hardware assumptions: CH340-backed USB-to-RS232 dongle, DT ASCII protocol,
 9600 8N1. See [DESIGN.md](../../DESIGN.md) §4 and §7 for the protocol and
@@ -38,7 +38,7 @@ def _hex_preview(data: bytes, limit: int = 64) -> str:
     return data[:limit].hex() + f"... ({len(data)} bytes total)"
 
 
-class Pump:
+class SyringePumpController:
     """Single-class driver for the Runze SY-01B (DT protocol over CH340/RS-232)."""
 
     __version__: ClassVar[str] = "0.2.0.dev0"
@@ -57,7 +57,7 @@ class Pump:
         UNKNOWN = 0xFF
 
         @classmethod
-        def from_byte(cls, nibble: int) -> Pump.ErrorCode:
+        def from_byte(cls, nibble: int) -> SyringePumpController.ErrorCode:
             try:
                 return cls(nibble)
             except ValueError:
@@ -70,11 +70,11 @@ class Pump:
 
         @property
         def full_stroke_steps(self) -> int:
-            return 12_000 if self is Pump.StepMode.NORMAL else 96_000
+            return 12_000 if self is SyringePumpController.StepMode.NORMAL else 96_000
 
     # ------------------------------------------------------------ exceptions
     class PumpError(Exception):
-        """Base for every error raised by the Pump class."""
+        """Base for every error raised by the SyringePumpController class."""
 
     class TransportError(PumpError):
         """Anything wrong at the serial / framing layer."""
@@ -99,11 +99,11 @@ class Pump:
             self.raw = raw
 
     class DeviceError(PumpError):
-        """Pump returned a non-OK error code in its status byte."""
+        """The pump device returned a non-OK error code in its status byte."""
 
         def __init__(
             self,
-            error_code: Pump.ErrorCode,
+            error_code: SyringePumpController.ErrorCode,
             command_sent: str,
             raw_reply: bytes,
         ) -> None:
@@ -161,29 +161,31 @@ class Pump:
     @dataclass(frozen=True, slots=True)
     class StatusByte:
         busy: bool
-        error: Pump.ErrorCode
+        error: SyringePumpController.ErrorCode
         raw: int
 
         @classmethod
-        def decode(cls, byte: int) -> Pump.StatusByte:
+        def decode(cls, byte: int) -> SyringePumpController.StatusByte:
             if (byte & 0x80) != 0 or (byte & 0x40) != 0x40:
-                raise Pump.ProtocolError(f"status byte {byte:#04x} missing fixed bit-6 frame")
+                raise SyringePumpController.ProtocolError(
+                    f"status byte {byte:#04x} missing fixed bit-6 frame"
+                )
             busy = (byte & 0x20) != 0
-            error = Pump.ErrorCode.from_byte(byte & 0x0F)
+            error = SyringePumpController.ErrorCode.from_byte(byte & 0x0F)
             return cls(busy=busy, error=error, raw=byte)
 
         @property
         def is_ok(self) -> bool:
-            return self.error is Pump.ErrorCode.OK
+            return self.error is SyringePumpController.ErrorCode.OK
 
     @dataclass(frozen=True, slots=True)
     class Reply:
-        status: Pump.StatusByte
+        status: SyringePumpController.StatusByte
         data: bytes
 
     @dataclass(frozen=True, slots=True)
     class Config:
-        """Pump configuration. Use `Pump.Config(port=..., ...)` or `Pump.Config.from_toml(path)`."""
+        """Pump configuration. Use ``SyringePumpController.Config(port=..., ...)`` or ``SyringePumpController.Config.from_toml(path)``."""
 
         _STALL_CURRENT_TABLE: ClassVar[tuple[tuple[int, int], ...]] = (
             (25, 4),
@@ -195,15 +197,17 @@ class Pump:
         address: int = 1
         baud: int = 9600
         syringe_uL: int = 5000
-        step_mode: Pump.StepMode = field(default_factory=lambda: Pump.StepMode.NORMAL)
+        step_mode: SyringePumpController.StepMode = field(
+            default_factory=lambda: SyringePumpController.StepMode.NORMAL
+        )
         reply_timeout_s: float = 1.0
 
         def __post_init__(self) -> None:
             if not 1 <= self.address <= 15:
                 raise ValueError(f"address must be 1..15, got {self.address}")
-            if self.syringe_uL not in Pump.ALLOWED_SYRINGES_UL:
+            if self.syringe_uL not in SyringePumpController.ALLOWED_SYRINGES_UL:
                 raise ValueError(
-                    f"syringe_uL={self.syringe_uL} not in {sorted(Pump.ALLOWED_SYRINGES_UL)}"
+                    f"syringe_uL={self.syringe_uL} not in {sorted(SyringePumpController.ALLOWED_SYRINGES_UL)}"
                 )
             if self.baud not in (9600, 38400):
                 raise ValueError(f"baud must be 9600 or 38400, got {self.baud}")
@@ -211,7 +215,7 @@ class Pump:
                 raise ValueError(f"reply_timeout_s must be positive, got {self.reply_timeout_s}")
 
         @classmethod
-        def from_toml(cls, path: Path) -> Pump.Config:
+        def from_toml(cls, path: Path) -> SyringePumpController.Config:
             data = tomllib.loads(path.read_text(encoding="utf-8"))
             section = data.get("pump", data)
             kwargs: dict[str, object] = {
@@ -219,7 +223,7 @@ class Pump:
             }
             step = kwargs.get("step_mode")
             if isinstance(step, str):
-                kwargs["step_mode"] = Pump.StepMode(step)
+                kwargs["step_mode"] = SyringePumpController.StepMode(step)
             return cls(**kwargs)  # type: ignore[arg-type]
 
         def stall_current_operand(self) -> int:
@@ -236,14 +240,14 @@ class Pump:
         supply_volts: float
         valve_position: str
         plunger_steps: int
-        pre_init_status: Pump.StatusByte
+        pre_init_status: SyringePumpController.StatusByte
         warnings: tuple[str, ...] = field(default_factory=tuple)
 
         @property
         def ok_to_initialize(self) -> bool:
             return self.pre_init_status.error in {
-                Pump.ErrorCode.OK,
-                Pump.ErrorCode.NOT_INITIALIZED,
+                SyringePumpController.ErrorCode.OK,
+                SyringePumpController.ErrorCode.NOT_INITIALIZED,
             }
 
         def render(self) -> str:
@@ -306,7 +310,7 @@ class Pump:
         self._reply_timeout_s = reply_timeout_s
 
     @classmethod
-    def open(cls, cfg: Pump.Config) -> Self:
+    def open(cls, cfg: SyringePumpController.Config) -> Self:
         port = serial.Serial(
             port=cfg.port,
             baudrate=cfg.baud,
@@ -349,45 +353,55 @@ class Pump:
     def format_address(address: int) -> bytes:
         if not 1 <= address <= 15:
             raise ValueError(f"address must be in 1..15, got {address}")
-        return bytes([Pump._ADDR_FIRST + address - 1])
+        return bytes([SyringePumpController._ADDR_FIRST + address - 1])
 
     @staticmethod
     def build_command(address: int, cmds: str, *, execute: bool = False) -> bytes:
         body = cmds.encode("ascii")
         if execute:
             body = body + b"R"
-        if len(body) > Pump.COMMAND_BUFFER_MAX:
+        if len(body) > SyringePumpController.COMMAND_BUFFER_MAX:
             raise ValueError(
                 f"command body is {len(body)} bytes, "
-                f"exceeds {Pump.COMMAND_BUFFER_MAX}-byte pump buffer"
+                f"exceeds {SyringePumpController.COMMAND_BUFFER_MAX}-byte pump buffer"
             )
-        return b"/" + Pump.format_address(address) + body + b"\r"
+        return b"/" + SyringePumpController.format_address(address) + body + b"\r"
 
     @staticmethod
-    def parse_reply(frame: bytes) -> Pump.Reply:
+    def parse_reply(frame: bytes) -> SyringePumpController.Reply:
         if len(frame) < 5:
-            raise Pump.ProtocolError(f"reply too short ({len(frame)} bytes): {frame!r}", raw=frame)
+            raise SyringePumpController.ProtocolError(
+                f"reply too short ({len(frame)} bytes): {frame!r}", raw=frame
+            )
         if frame[0:1] != b"/":
-            raise Pump.ProtocolError(f"reply missing leading '/': {frame!r}", raw=frame)
+            raise SyringePumpController.ProtocolError(
+                f"reply missing leading '/': {frame!r}", raw=frame
+            )
         if frame[1:2] != b"0":
-            raise Pump.ProtocolError(
+            raise SyringePumpController.ProtocolError(
                 f"reply master address is {frame[1:2]!r}, expected b'0'", raw=frame
             )
-        etx_index = frame.find(Pump._ETX, 3)
+        etx_index = frame.find(SyringePumpController._ETX, 3)
         if etx_index < 0:
-            raise Pump.ProtocolError(f"reply missing ETX terminator: {frame!r}", raw=frame)
-        status = Pump.StatusByte.decode(frame[2])
+            raise SyringePumpController.ProtocolError(
+                f"reply missing ETX terminator: {frame!r}", raw=frame
+            )
+        status = SyringePumpController.StatusByte.decode(frame[2])
         data = bytes(frame[3:etx_index])
-        return Pump.Reply(status=status, data=data)
+        return SyringePumpController.Reply(status=status, data=data)
 
     @staticmethod
-    def device_error_for(code: Pump.ErrorCode) -> type[Pump.DeviceError]:
-        return Pump._DEVICE_ERROR_BY_CODE.get(code, Pump.DeviceError)
+    def device_error_for(
+        code: SyringePumpController.ErrorCode,
+    ) -> type[SyringePumpController.DeviceError]:
+        return SyringePumpController._DEVICE_ERROR_BY_CODE.get(
+            code, SyringePumpController.DeviceError
+        )
 
     # --------------------------------------------------------- private I/O
     def _send_and_receive(self, frame: bytes) -> bytes:
         if not self._serial.is_open:
-            raise Pump.TransportClosed("serial port is not open")
+            raise SyringePumpController.TransportClosed("serial port is not open")
         logger.debug("→ %s", _hex_preview(frame))
         self._serial.reset_input_buffer()
         self._serial.write(frame)
@@ -398,8 +412,8 @@ class Pump:
             chunk = self._serial.read(64)
             if chunk:
                 buf.extend(chunk)
-                if Pump._ETX in buf:
-                    end = buf.index(Pump._ETX) + 1
+                if SyringePumpController._ETX in buf:
+                    end = buf.index(SyringePumpController._ETX) + 1
                     while end < len(buf) and buf[end] in (0x0D, 0x0A):
                         end += 1
                     # CH340 dongles occasionally emit a stray byte (0xFF, NUL) before
@@ -411,69 +425,90 @@ class Pump:
                     logger.debug("← %s", _hex_preview(reply))
                     return reply
             if time.monotonic() - deadline_anchor > self._reply_timeout_s:
-                raise Pump.TransportTimeout(
+                raise SyringePumpController.TransportTimeout(
                     elapsed_s=time.monotonic() - deadline_anchor,
                     frame_sent=frame,
                     partial=bytes(buf),
                 )
 
-    def _query(self, cmds: str) -> Pump.Reply:
-        frame = Pump.build_command(self._address, cmds)
-        return Pump.parse_reply(self._send_and_receive(frame))
+    def _query(self, cmds: str) -> SyringePumpController.Reply:
+        frame = SyringePumpController.build_command(self._address, cmds)
+        return SyringePumpController.parse_reply(self._send_and_receive(frame))
 
     def _decode_ascii(self, data: bytes, name: str) -> str:
         try:
             return data.decode("ascii").strip()
         except UnicodeDecodeError as exc:
-            raise Pump.ProtocolError(f"{name} reply is not ASCII: {data!r}") from exc
+            raise SyringePumpController.ProtocolError(
+                f"{name} reply is not ASCII: {data!r}"
+            ) from exc
 
     # ----------------------------------------------------- read-only queries
-    def query_status(self) -> Pump.StatusByte:
-        return self._query(Pump.CMD_QUERY_STATUS).status
+    def query_status(self) -> SyringePumpController.StatusByte:
+        return self._query(SyringePumpController.CMD_QUERY_STATUS).status
 
     def query_software_version(self) -> str:
         return self._decode_ascii(
-            self._query(Pump.CMD_QUERY_SOFTWARE_VERSION).data, "software version"
+            self._query(SyringePumpController.CMD_QUERY_SOFTWARE_VERSION).data, "software version"
         )
 
     def query_serial_number(self) -> str:
-        return self._decode_ascii(self._query(Pump.CMD_QUERY_SERIAL_NUMBER).data, "serial number")
+        return self._decode_ascii(
+            self._query(SyringePumpController.CMD_QUERY_SERIAL_NUMBER).data, "serial number"
+        )
 
     def query_config(self) -> str:
-        return self._decode_ascii(self._query(Pump.CMD_QUERY_CONFIG).data, "config")
+        return self._decode_ascii(
+            self._query(SyringePumpController.CMD_QUERY_CONFIG).data, "config"
+        )
 
     def query_supply_voltage_v(self) -> float:
-        text = self._decode_ascii(self._query(Pump.CMD_QUERY_SUPPLY_VOLTAGE).data, "supply voltage")
+        text = self._decode_ascii(
+            self._query(SyringePumpController.CMD_QUERY_SUPPLY_VOLTAGE).data, "supply voltage"
+        )
         try:
             return int(text) / 10.0
         except ValueError as exc:
-            raise Pump.ProtocolError(f"supply voltage reply is not a number: {text!r}") from exc
+            raise SyringePumpController.ProtocolError(
+                f"supply voltage reply is not a number: {text!r}"
+            ) from exc
 
     def query_valve_position(self) -> str:
-        return self._decode_ascii(self._query(Pump.CMD_QUERY_VALVE_POSITION).data, "valve position")
+        return self._decode_ascii(
+            self._query(SyringePumpController.CMD_QUERY_VALVE_POSITION).data, "valve position"
+        )
 
     def query_plunger_position(self) -> int:
         text = self._decode_ascii(
-            self._query(Pump.CMD_QUERY_PLUNGER_POSITION).data, "plunger position"
+            self._query(SyringePumpController.CMD_QUERY_PLUNGER_POSITION).data, "plunger position"
         )
         try:
             return int(text)
         except ValueError as exc:
-            raise Pump.ProtocolError(f"plunger position reply is not a number: {text!r}") from exc
+            raise SyringePumpController.ProtocolError(
+                f"plunger position reply is not a number: {text!r}"
+            ) from exc
 
     # ---------------------------------------------------- diagnostic flow
-    def diagnose(self) -> Pump.DiagnosticsReport:
+    def diagnose(self) -> SyringePumpController.DiagnosticsReport:
         """Run the read-only commissioning probe. Never sends R/Z/Y/W."""
         logger.info("starting diagnostic probe (read-only)")
 
         try:
             status = self.query_status()
-        except Pump.TransportTimeout as exc:
-            raise Pump.DiagnosticTimeoutError(f"echo probe Q timed out: {exc}") from exc
-        except Pump.ProtocolError as exc:
-            raise Pump.DiagnosticGarbledReplyError(f"echo probe Q reply malformed: {exc}") from exc
+        except SyringePumpController.TransportTimeout as exc:
+            raise SyringePumpController.DiagnosticTimeoutError(
+                f"echo probe Q timed out: {exc}"
+            ) from exc
+        except SyringePumpController.ProtocolError as exc:
+            raise SyringePumpController.DiagnosticGarbledReplyError(
+                f"echo probe Q reply malformed: {exc}"
+            ) from exc
 
-        if status.error not in {Pump.ErrorCode.OK, Pump.ErrorCode.NOT_INITIALIZED}:
+        if status.error not in {
+            SyringePumpController.ErrorCode.OK,
+            SyringePumpController.ErrorCode.NOT_INITIALIZED,
+        }:
             logger.warning("pre-init status reports error %s", status.error.name)
 
         try:
@@ -483,19 +518,23 @@ class Pump:
             supply_volts = self.query_supply_voltage_v()
             valve_position = self.query_valve_position()
             plunger_steps = self.query_plunger_position()
-        except Pump.TransportTimeout as exc:
-            raise Pump.DiagnosticTimeoutError(f"probe timed out: {exc}") from exc
-        except Pump.ProtocolError as exc:
-            raise Pump.DiagnosticGarbledReplyError(f"probe reply malformed: {exc}") from exc
+        except SyringePumpController.TransportTimeout as exc:
+            raise SyringePumpController.DiagnosticTimeoutError(f"probe timed out: {exc}") from exc
+        except SyringePumpController.ProtocolError as exc:
+            raise SyringePumpController.DiagnosticGarbledReplyError(
+                f"probe reply malformed: {exc}"
+            ) from exc
 
-        if supply_volts < Pump.MIN_SUPPLY_VOLTS:
-            raise Pump.LowSupplyVoltageError(measured_v=supply_volts, min_v=Pump.MIN_SUPPLY_VOLTS)
+        if supply_volts < SyringePumpController.MIN_SUPPLY_VOLTS:
+            raise SyringePumpController.LowSupplyVoltageError(
+                measured_v=supply_volts, min_v=SyringePumpController.MIN_SUPPLY_VOLTS
+            )
 
         warnings: list[str] = []
         if valve_position.upper() == "B":
             warnings.append("valve is in bypass — plunger moves will fail with error 11")
 
-        report = Pump.DiagnosticsReport(
+        report = SyringePumpController.DiagnosticsReport(
             software_version=software_version,
             serial_number=serial_number,
             config=config,

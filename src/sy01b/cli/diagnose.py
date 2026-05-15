@@ -1,7 +1,7 @@
 """`sy01b-diagnose` console script.
 
 Refuses to emit any command that could move the plunger or the valve. The
-command builders it uses are read-only constants on `Pump`; no code path
+command builders it uses are read-only constants on `SyringePumpController`; no code path
 inside this script constructs a frame with a trailing `R`.
 """
 
@@ -13,7 +13,7 @@ import logging
 import sys
 from pathlib import Path
 
-from sy01b import Pump
+from sy01b import SyringePumpController
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -44,7 +44,7 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _resolve_config(args: argparse.Namespace) -> Pump.Config:
+def _resolve_config(args: argparse.Namespace) -> SyringePumpController.Config:
     overrides: dict[str, object] = {
         k: v
         for k, v in {
@@ -57,7 +57,7 @@ def _resolve_config(args: argparse.Namespace) -> Pump.Config:
     }
 
     if args.config is not None:
-        cfg = Pump.Config.from_toml(args.config)
+        cfg = SyringePumpController.Config.from_toml(args.config)
         if overrides:
             cfg = dataclasses.replace(cfg, **overrides)  # type: ignore[arg-type]
         return cfg
@@ -65,7 +65,7 @@ def _resolve_config(args: argparse.Namespace) -> Pump.Config:
     if "port" not in overrides:
         raise SystemExit("error: either --config or --port is required")
 
-    return Pump.Config(**overrides)  # type: ignore[arg-type]
+    return SyringePumpController.Config(**overrides)  # type: ignore[arg-type]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -78,9 +78,9 @@ def main(argv: list[str] | None = None) -> int:
     cfg = _resolve_config(args)
 
     try:
-        with Pump.open(cfg) as pump:
+        with SyringePumpController.open(cfg) as pump:
             report = pump.diagnose()
-    except Pump.DiagnosticError as exc:
+    except SyringePumpController.DiagnosticError as exc:
         print(f"DIAGNOSTIC FAILED: {exc}", file=sys.stderr)
         return 2
     except Exception as exc:  # pragma: no cover
