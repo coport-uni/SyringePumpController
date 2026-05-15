@@ -1,47 +1,328 @@
-"""High-level Pump class — read-only API surface.
+"""Single-class driver for the Runze SY-01B Smart Syringe Pump.
 
-Motion methods (initialize, aspirate, dispense, abort) live behind their
-own milestone and are not implemented in this commit. The scope here is
-the verification path: open the port, prove communication, read identity
-fields (software version, serial number), read supply voltage. See
-[DESIGN.md](../../DESIGN.md) §6, §7, §10.1.
+Everything the controller needs — enums, dataclasses, exceptions, command
+constants, frame builder/parser, the serial I/O loop, the read-only query
+methods, and the diagnostic flow — lives on the `Pump` class. Operators
+import a single name: `from sy01b import Pump`.
+
+Hardware assumptions: CH340-backed USB-to-RS232 dongle, DT ASCII protocol,
+9600 8N1. See [DESIGN.md](../../DESIGN.md) §4 and §7 for the protocol and
+diagnostic-flow rationale.
+
+Limitations:
+- Pickling nested dataclasses is unsupported (pickle resolves classes by
+  qualified name and gets confused inside other classes).
+- Motion methods (initialize, aspirate, dispense, abort) are not in this
+  milestone. The defensive read-only surface is the entire public API.
 """
 
 from __future__ import annotations
 
+import logging
+import time
+import tomllib
+from dataclasses import dataclass, field
+from enum import IntEnum, StrEnum
+from pathlib import Path
 from types import TracebackType
-from typing import Self
+from typing import ClassVar, Self
 
-from sy01b.config import PumpConfig
-from sy01b.errors import ProtocolError, WrongAddressError
-from sy01b.protocol import (
-    CMD_QUERY_CONFIG,
-    CMD_QUERY_PLUNGER_POSITION,
-    CMD_QUERY_SERIAL_NUMBER,
-    CMD_QUERY_SOFTWARE_VERSION,
-    CMD_QUERY_STATUS,
-    CMD_QUERY_SUPPLY_VOLTAGE,
-    CMD_QUERY_VALVE_POSITION,
-    Reply,
-    StatusByte,
-    build_command,
-    parse_reply,
-)
-from sy01b.transport import DTTransport, Transport
+import serial
+
+logger = logging.getLogger("sy01b")
+
+
+def _hex_preview(data: bytes, limit: int = 64) -> str:
+    if len(data) <= limit:
+        return data.hex()
+    return data[:limit].hex() + f"... ({len(data)} bytes total)"
 
 
 class Pump:
-    """Driver for a single SY-01B at a single address on a single transport."""
+    """Single-class driver for the Runze SY-01B (DT protocol over CH340/RS-232)."""
 
-    def __init__(self, transport: Transport, address: int, reply_timeout_s: float) -> None:
-        self._transport = transport
+    __version__: ClassVar[str] = "0.2.0.dev0"
+
+    # ------------------------------------------------------------------ enums
+    class ErrorCode(IntEnum):
+        OK = 0
+        INIT_FAILED = 1
+        INVALID_COMMAND = 2
+        INVALID_OPERAND = 3
+        NOT_INITIALIZED = 7
+        PLUNGER_OVERLOAD = 9
+        VALVE_OVERLOAD = 10
+        PLUNGER_BLOCKED_BY_BYPASS = 11
+        COMMAND_OVERFLOW = 15
+        UNKNOWN = 0xFF
+
+        @classmethod
+        def from_byte(cls, nibble: int) -> Pump.ErrorCode:
+            try:
+                return cls(nibble)
+            except ValueError:
+                return cls.UNKNOWN
+
+    class StepMode(StrEnum):
+        NORMAL = "N0"
+        FINE = "N1"
+        MICRO = "N2"
+
+        @property
+        def full_stroke_steps(self) -> int:
+            return 12_000 if self is Pump.StepMode.NORMAL else 96_000
+
+    # ------------------------------------------------------------ exceptions
+    class PumpError(Exception):
+        """Base for every error raised by the Pump class."""
+
+    class TransportError(PumpError):
+        """Anything wrong at the serial / framing layer."""
+
+    class TransportTimeout(TransportError):
+        def __init__(self, elapsed_s: float, frame_sent: bytes, partial: bytes) -> None:
+            super().__init__(
+                f"no ETX within {elapsed_s:.3f}s; sent={frame_sent!r} partial={partial!r}"
+            )
+            self.elapsed_s = elapsed_s
+            self.frame_sent = frame_sent
+            self.partial = partial
+
+    class TransportClosed(TransportError):
+        """Operation attempted on a closed transport."""
+
+    class ProtocolError(PumpError):
+        """Reply bytes received but the frame is malformed."""
+
+        def __init__(self, message: str, raw: bytes = b"") -> None:
+            super().__init__(message)
+            self.raw = raw
+
+    class DeviceError(PumpError):
+        """Pump returned a non-OK error code in its status byte."""
+
+        def __init__(
+            self,
+            error_code: Pump.ErrorCode,
+            command_sent: str,
+            raw_reply: bytes,
+        ) -> None:
+            super().__init__(
+                f"{type(self).__name__}: code={int(error_code)} "
+                f"cmd={command_sent!r} reply={raw_reply.hex()}"
+            )
+            self.error_code = error_code
+            self.command_sent = command_sent
+            self.raw_reply = raw_reply
+
+    class InitFailedError(DeviceError):
+        """Error 1 — initialization failed."""
+
+    class InvalidCommandError(DeviceError):
+        """Error 2."""
+
+    class InvalidOperandError(DeviceError):
+        """Error 3."""
+
+    class NotInitializedError(DeviceError):
+        """Error 7."""
+
+    class PlungerOverloadError(DeviceError):
+        """Error 9 — plunger overload; must re-initialize."""
+
+    class ValveOverloadError(DeviceError):
+        """Error 10."""
+
+    class PlungerBlockedByBypassError(DeviceError):
+        """Error 11."""
+
+    class CommandOverflowError(DeviceError):
+        """Error 15."""
+
+    class DiagnosticError(PumpError):
+        """Base for failures of the read-only diagnostic stage."""
+
+    class DiagnosticTimeoutError(DiagnosticError):
+        """A diagnostic probe timed out."""
+
+    class DiagnosticGarbledReplyError(DiagnosticError):
+        """A diagnostic probe got a reply that did not parse as DT."""
+
+    class LowSupplyVoltageError(DiagnosticError):
+        def __init__(self, measured_v: float, min_v: float) -> None:
+            super().__init__(f"supply voltage {measured_v:.1f}V below floor {min_v:.1f}V")
+            self.measured_v = measured_v
+            self.min_v = min_v
+
+    class WrongAddressError(DiagnosticError):
+        """Reply parsed but the echoed address byte did not match the configured one."""
+
+    # ------------------------------------------------------------- dataclasses
+    @dataclass(frozen=True, slots=True)
+    class StatusByte:
+        busy: bool
+        error: Pump.ErrorCode
+        raw: int
+
+        @classmethod
+        def decode(cls, byte: int) -> Pump.StatusByte:
+            if (byte & 0x80) != 0 or (byte & 0x40) != 0x40:
+                raise Pump.ProtocolError(f"status byte {byte:#04x} missing fixed bit-6 frame")
+            busy = (byte & 0x20) != 0
+            error = Pump.ErrorCode.from_byte(byte & 0x0F)
+            return cls(busy=busy, error=error, raw=byte)
+
+        @property
+        def is_ok(self) -> bool:
+            return self.error is Pump.ErrorCode.OK
+
+    @dataclass(frozen=True, slots=True)
+    class Reply:
+        status: Pump.StatusByte
+        data: bytes
+
+    @dataclass(frozen=True, slots=True)
+    class Config:
+        """Pump configuration. Use `Pump.Config(port=..., ...)` or `Pump.Config.from_toml(path)`."""
+
+        _STALL_CURRENT_TABLE: ClassVar[tuple[tuple[int, int], ...]] = (
+            (25, 4),
+            (1250, 5),
+            (5000, 6),
+        )
+
+        port: str
+        address: int = 1
+        baud: int = 9600
+        syringe_uL: int = 5000
+        step_mode: Pump.StepMode = field(default_factory=lambda: Pump.StepMode.NORMAL)
+        reply_timeout_s: float = 1.0
+
+        def __post_init__(self) -> None:
+            if not 1 <= self.address <= 15:
+                raise ValueError(f"address must be 1..15, got {self.address}")
+            if self.syringe_uL not in Pump.ALLOWED_SYRINGES_UL:
+                raise ValueError(
+                    f"syringe_uL={self.syringe_uL} not in {sorted(Pump.ALLOWED_SYRINGES_UL)}"
+                )
+            if self.baud not in (9600, 38400):
+                raise ValueError(f"baud must be 9600 or 38400, got {self.baud}")
+            if self.reply_timeout_s <= 0:
+                raise ValueError(f"reply_timeout_s must be positive, got {self.reply_timeout_s}")
+
+        @classmethod
+        def from_toml(cls, path: Path) -> Pump.Config:
+            data = tomllib.loads(path.read_text(encoding="utf-8"))
+            section = data.get("pump", data)
+            kwargs: dict[str, object] = {
+                k: v for k, v in section.items() if k in cls.__dataclass_fields__
+            }
+            step = kwargs.get("step_mode")
+            if isinstance(step, str):
+                kwargs["step_mode"] = Pump.StepMode(step)
+            return cls(**kwargs)  # type: ignore[arg-type]
+
+        def stall_current_operand(self) -> int:
+            for upper, operand in self._STALL_CURRENT_TABLE:
+                if self.syringe_uL <= upper:
+                    return operand
+            raise ValueError(f"no stall-current entry for syringe_uL={self.syringe_uL}")
+
+    @dataclass(frozen=True, slots=True)
+    class DiagnosticsReport:
+        software_version: str
+        serial_number: str
+        config: str
+        supply_volts: float
+        valve_position: str
+        plunger_steps: int
+        pre_init_status: Pump.StatusByte
+        warnings: tuple[str, ...] = field(default_factory=tuple)
+
+        @property
+        def ok_to_initialize(self) -> bool:
+            return self.pre_init_status.error in {
+                Pump.ErrorCode.OK,
+                Pump.ErrorCode.NOT_INITIALIZED,
+            }
+
+        def render(self) -> str:
+            lines = [
+                "SY-01B diagnostic report",
+                f"  software version : {self.software_version}",
+                f"  serial number    : {self.serial_number}",
+                f"  config           : {self.config}",
+                f"  supply voltage   : {self.supply_volts:.1f} V",
+                f"  valve position   : {self.valve_position}",
+                f"  plunger position : {self.plunger_steps} steps",
+                f"  pre-init status  : busy={self.pre_init_status.busy} "
+                f"error={self.pre_init_status.error.name}",
+                f"  ok to initialize : {self.ok_to_initialize}",
+            ]
+            if self.warnings:
+                lines.append("  warnings:")
+                lines.extend(f"    - {w}" for w in self.warnings)
+            return "\n".join(lines)
+
+    # ------------------------------------------------------ class-level constants
+    ALLOWED_SYRINGES_UL: ClassVar[frozenset[int]] = frozenset(
+        {25, 50, 100, 125, 250, 500, 1000, 1250, 2500, 5000}
+    )
+    MIN_SUPPLY_VOLTS: ClassVar[float] = 22.0
+    COMMAND_BUFFER_MAX: ClassVar[int] = 255
+
+    CMD_QUERY_STATUS: ClassVar[str] = "Q"
+    CMD_QUERY_SOFTWARE_VERSION: ClassVar[str] = "?23"
+    CMD_QUERY_SERIAL_NUMBER: ClassVar[str] = "?202"
+    CMD_QUERY_CONFIG: ClassVar[str] = "?76"
+    CMD_QUERY_SUPPLY_VOLTAGE: ClassVar[str] = "*"
+    CMD_QUERY_VALVE_POSITION: ClassVar[str] = "?6"
+    CMD_QUERY_PLUNGER_POSITION: ClassVar[str] = "?"
+
+    _ETX: ClassVar[bytes] = b"\x03"
+    _ADDR_FIRST: ClassVar[int] = ord("1")
+
+    # Requires all DeviceError subclasses and ErrorCode defined above.
+    _DEVICE_ERROR_BY_CODE: ClassVar[dict[ErrorCode, type[DeviceError]]] = {
+        ErrorCode.INIT_FAILED: InitFailedError,
+        ErrorCode.INVALID_COMMAND: InvalidCommandError,
+        ErrorCode.INVALID_OPERAND: InvalidOperandError,
+        ErrorCode.NOT_INITIALIZED: NotInitializedError,
+        ErrorCode.PLUNGER_OVERLOAD: PlungerOverloadError,
+        ErrorCode.VALVE_OVERLOAD: ValveOverloadError,
+        ErrorCode.PLUNGER_BLOCKED_BY_BYPASS: PlungerBlockedByBypassError,
+        ErrorCode.COMMAND_OVERFLOW: CommandOverflowError,
+    }
+
+    # ----------------------------------------------------------- construction
+    def __init__(
+        self,
+        serial_port: serial.Serial,
+        address: int,
+        reply_timeout_s: float,
+    ) -> None:
+        self._serial = serial_port
         self._address = address
         self._reply_timeout_s = reply_timeout_s
 
     @classmethod
-    def open(cls, cfg: PumpConfig) -> Pump:
-        transport = DTTransport.open(cfg)
-        return cls(transport=transport, address=cfg.address, reply_timeout_s=cfg.reply_timeout_s)
+    def open(cls, cfg: Pump.Config) -> Self:
+        port = serial.Serial(
+            port=cfg.port,
+            baudrate=cfg.baud,
+            bytesize=serial.EIGHTBITS,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_ONE,
+            timeout=0.05,
+            write_timeout=cfg.reply_timeout_s,
+            xonxoff=False,
+            rtscts=False,
+            dsrdtr=False,
+        )
+        port.dtr = False
+        port.rts = False
+        logger.debug("opened %s @ %d 8N1 (DTR/RTS forced low)", cfg.port, cfg.baud)
+        return cls(port, cfg.address, cfg.reply_timeout_s)
 
     def __enter__(self) -> Self:
         return self
@@ -55,64 +336,174 @@ class Pump:
         self.close()
 
     def close(self) -> None:
-        self._transport.close()
-
-    def _query(self, cmds: str) -> Reply:
-        frame = build_command(self._address, cmds, execute=False)
-        raw = self._transport.send(frame, deadline_s=self._reply_timeout_s)
-        return parse_reply(raw)
-
-    def query_status(self) -> StatusByte:
-        return self._query(CMD_QUERY_STATUS).status
-
-    def query_software_version(self) -> str:
-        return self._decode_ascii(self._query(CMD_QUERY_SOFTWARE_VERSION).data, "software version")
-
-    def query_serial_number(self) -> str:
-        return self._decode_ascii(self._query(CMD_QUERY_SERIAL_NUMBER).data, "serial number")
-
-    def query_config(self) -> str:
-        return self._decode_ascii(self._query(CMD_QUERY_CONFIG).data, "config")
-
-    def query_supply_voltage_v(self) -> float:
-        text = self._decode_ascii(self._query(CMD_QUERY_SUPPLY_VOLTAGE).data, "supply voltage")
-        try:
-            tenths_of_volts = int(text)
-        except ValueError as exc:
-            raise ProtocolError(f"supply voltage reply is not a number: {text!r}") from exc
-        return tenths_of_volts / 10.0
-
-    def query_valve_position(self) -> str:
-        return self._decode_ascii(self._query(CMD_QUERY_VALVE_POSITION).data, "valve position")
-
-    def query_plunger_position(self) -> int:
-        text = self._decode_ascii(self._query(CMD_QUERY_PLUNGER_POSITION).data, "plunger position")
-        try:
-            return int(text)
-        except ValueError as exc:
-            raise ProtocolError(f"plunger position reply is not a number: {text!r}") from exc
-
-    def assert_address_echo(self, frame_sent: bytes, reply_seen: bytes) -> None:
-        """Sanity check used by the diagnostic stage.
-
-        DT replies always echo b'0' as the master address (per spec), not the
-        pump's own address. So we can only check the leading bytes match the
-        DT convention — that the *pump* is using DT framing at all. The
-        proof that the right pump answered is implicit: we sent to address N
-        and got a syntactically valid DT reply. Mismatch would surface as a
-        timeout, not a parse error.
-        """
-        if reply_seen[:2] != b"/0":
-            raise WrongAddressError(
-                f"reply header {reply_seen[:2]!r} is not DT-shaped (sent {frame_sent!r})"
-            )
+        if self._serial.is_open:
+            self._serial.close()
+            logger.debug("serial port closed")
 
     @property
     def address(self) -> int:
         return self._address
 
-    def _decode_ascii(self, data: bytes, field: str) -> str:
+    # ---------------------------------------------------- pure static helpers
+    @staticmethod
+    def format_address(address: int) -> bytes:
+        if not 1 <= address <= 15:
+            raise ValueError(f"address must be in 1..15, got {address}")
+        return bytes([Pump._ADDR_FIRST + address - 1])
+
+    @staticmethod
+    def build_command(address: int, cmds: str, *, execute: bool = False) -> bytes:
+        body = cmds.encode("ascii")
+        if execute:
+            body = body + b"R"
+        if len(body) > Pump.COMMAND_BUFFER_MAX:
+            raise ValueError(
+                f"command body is {len(body)} bytes, "
+                f"exceeds {Pump.COMMAND_BUFFER_MAX}-byte pump buffer"
+            )
+        return b"/" + Pump.format_address(address) + body + b"\r"
+
+    @staticmethod
+    def parse_reply(frame: bytes) -> Pump.Reply:
+        if len(frame) < 5:
+            raise Pump.ProtocolError(f"reply too short ({len(frame)} bytes): {frame!r}", raw=frame)
+        if frame[0:1] != b"/":
+            raise Pump.ProtocolError(f"reply missing leading '/': {frame!r}", raw=frame)
+        if frame[1:2] != b"0":
+            raise Pump.ProtocolError(
+                f"reply master address is {frame[1:2]!r}, expected b'0'", raw=frame
+            )
+        etx_index = frame.find(Pump._ETX, 3)
+        if etx_index < 0:
+            raise Pump.ProtocolError(f"reply missing ETX terminator: {frame!r}", raw=frame)
+        status = Pump.StatusByte.decode(frame[2])
+        data = bytes(frame[3:etx_index])
+        return Pump.Reply(status=status, data=data)
+
+    @staticmethod
+    def device_error_for(code: Pump.ErrorCode) -> type[Pump.DeviceError]:
+        return Pump._DEVICE_ERROR_BY_CODE.get(code, Pump.DeviceError)
+
+    # --------------------------------------------------------- private I/O
+    def _send_and_receive(self, frame: bytes) -> bytes:
+        if not self._serial.is_open:
+            raise Pump.TransportClosed("serial port is not open")
+        logger.debug("→ %s", _hex_preview(frame))
+        self._serial.reset_input_buffer()
+        self._serial.write(frame)
+        self._serial.flush()
+        buf = bytearray()
+        deadline_anchor = time.monotonic()
+        while True:
+            chunk = self._serial.read(64)
+            if chunk:
+                buf.extend(chunk)
+                if Pump._ETX in buf:
+                    end = buf.index(Pump._ETX) + 1
+                    while end < len(buf) and buf[end] in (0x0D, 0x0A):
+                        end += 1
+                    # CH340 dongles occasionally emit a stray byte (0xFF, NUL) before
+                    # the start-of-frame on the first reply after open. Drop it.
+                    frame_start = buf.find(b"/")
+                    reply = (
+                        bytes(buf[frame_start:end]) if 0 <= frame_start < end else bytes(buf[:end])
+                    )
+                    logger.debug("← %s", _hex_preview(reply))
+                    return reply
+            if time.monotonic() - deadline_anchor > self._reply_timeout_s:
+                raise Pump.TransportTimeout(
+                    elapsed_s=time.monotonic() - deadline_anchor,
+                    frame_sent=frame,
+                    partial=bytes(buf),
+                )
+
+    def _query(self, cmds: str) -> Pump.Reply:
+        frame = Pump.build_command(self._address, cmds)
+        return Pump.parse_reply(self._send_and_receive(frame))
+
+    def _decode_ascii(self, data: bytes, name: str) -> str:
         try:
             return data.decode("ascii").strip()
         except UnicodeDecodeError as exc:
-            raise ProtocolError(f"{field} reply is not ASCII: {data!r}") from exc
+            raise Pump.ProtocolError(f"{name} reply is not ASCII: {data!r}") from exc
+
+    # ----------------------------------------------------- read-only queries
+    def query_status(self) -> Pump.StatusByte:
+        return self._query(Pump.CMD_QUERY_STATUS).status
+
+    def query_software_version(self) -> str:
+        return self._decode_ascii(
+            self._query(Pump.CMD_QUERY_SOFTWARE_VERSION).data, "software version"
+        )
+
+    def query_serial_number(self) -> str:
+        return self._decode_ascii(self._query(Pump.CMD_QUERY_SERIAL_NUMBER).data, "serial number")
+
+    def query_config(self) -> str:
+        return self._decode_ascii(self._query(Pump.CMD_QUERY_CONFIG).data, "config")
+
+    def query_supply_voltage_v(self) -> float:
+        text = self._decode_ascii(self._query(Pump.CMD_QUERY_SUPPLY_VOLTAGE).data, "supply voltage")
+        try:
+            return int(text) / 10.0
+        except ValueError as exc:
+            raise Pump.ProtocolError(f"supply voltage reply is not a number: {text!r}") from exc
+
+    def query_valve_position(self) -> str:
+        return self._decode_ascii(self._query(Pump.CMD_QUERY_VALVE_POSITION).data, "valve position")
+
+    def query_plunger_position(self) -> int:
+        text = self._decode_ascii(
+            self._query(Pump.CMD_QUERY_PLUNGER_POSITION).data, "plunger position"
+        )
+        try:
+            return int(text)
+        except ValueError as exc:
+            raise Pump.ProtocolError(f"plunger position reply is not a number: {text!r}") from exc
+
+    # ---------------------------------------------------- diagnostic flow
+    def diagnose(self) -> Pump.DiagnosticsReport:
+        """Run the read-only commissioning probe. Never sends R/Z/Y/W."""
+        logger.info("starting diagnostic probe (read-only)")
+
+        try:
+            status = self.query_status()
+        except Pump.TransportTimeout as exc:
+            raise Pump.DiagnosticTimeoutError(f"echo probe Q timed out: {exc}") from exc
+        except Pump.ProtocolError as exc:
+            raise Pump.DiagnosticGarbledReplyError(f"echo probe Q reply malformed: {exc}") from exc
+
+        if status.error not in {Pump.ErrorCode.OK, Pump.ErrorCode.NOT_INITIALIZED}:
+            logger.warning("pre-init status reports error %s", status.error.name)
+
+        try:
+            software_version = self.query_software_version()
+            serial_number = self.query_serial_number()
+            config = self.query_config()
+            supply_volts = self.query_supply_voltage_v()
+            valve_position = self.query_valve_position()
+            plunger_steps = self.query_plunger_position()
+        except Pump.TransportTimeout as exc:
+            raise Pump.DiagnosticTimeoutError(f"probe timed out: {exc}") from exc
+        except Pump.ProtocolError as exc:
+            raise Pump.DiagnosticGarbledReplyError(f"probe reply malformed: {exc}") from exc
+
+        if supply_volts < Pump.MIN_SUPPLY_VOLTS:
+            raise Pump.LowSupplyVoltageError(measured_v=supply_volts, min_v=Pump.MIN_SUPPLY_VOLTS)
+
+        warnings: list[str] = []
+        if valve_position.upper() == "B":
+            warnings.append("valve is in bypass — plunger moves will fail with error 11")
+
+        report = Pump.DiagnosticsReport(
+            software_version=software_version,
+            serial_number=serial_number,
+            config=config,
+            supply_volts=supply_volts,
+            valve_position=valve_position,
+            plunger_steps=plunger_steps,
+            pre_init_status=status,
+            warnings=tuple(warnings),
+        )
+        logger.info("diagnostic probe complete: %s", report.render().splitlines()[0])
+        return report

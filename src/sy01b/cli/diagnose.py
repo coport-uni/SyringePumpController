@@ -1,8 +1,8 @@
 """`sy01b-diagnose` console script.
 
 Refuses to emit any command that could move the plunger or the valve. The
-command builders it uses are read-only constants from `sy01b.protocol`; no
-code path inside this script constructs a frame with a trailing `R`.
+command builders it uses are read-only constants on `Pump`; no code path
+inside this script constructs a frame with a trailing `R`.
 """
 
 from __future__ import annotations
@@ -13,12 +13,7 @@ import logging
 import sys
 from pathlib import Path
 
-from sy01b import (
-    DiagnosticError,
-    PumpConfig,
-    diagnose,
-)
-from sy01b.pump import Pump
+from sy01b import Pump
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -31,7 +26,7 @@ def _build_parser() -> argparse.ArgumentParser:
         type=Path,
         help="Path to a TOML config file. If omitted, pass --port and the other flags.",
     )
-    parser.add_argument("--port", help="Serial port path (e.g. /dev/ttyUSB0). Overrides config.")
+    parser.add_argument("--port", help="Serial port path (e.g. /dev/ttyUSB1). Overrides config.")
     parser.add_argument("--address", type=int, help="Pump address 1..15. Overrides config.")
     parser.add_argument("--baud", type=int, help="Baud rate (9600 or 38400). Overrides config.")
     parser.add_argument(
@@ -49,7 +44,7 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _resolve_config(args: argparse.Namespace) -> PumpConfig:
+def _resolve_config(args: argparse.Namespace) -> Pump.Config:
     overrides: dict[str, object] = {
         k: v
         for k, v in {
@@ -62,7 +57,7 @@ def _resolve_config(args: argparse.Namespace) -> PumpConfig:
     }
 
     if args.config is not None:
-        cfg = PumpConfig.from_toml(args.config)
+        cfg = Pump.Config.from_toml(args.config)
         if overrides:
             cfg = dataclasses.replace(cfg, **overrides)  # type: ignore[arg-type]
         return cfg
@@ -70,7 +65,7 @@ def _resolve_config(args: argparse.Namespace) -> PumpConfig:
     if "port" not in overrides:
         raise SystemExit("error: either --config or --port is required")
 
-    return PumpConfig(**overrides)  # type: ignore[arg-type]
+    return Pump.Config(**overrides)  # type: ignore[arg-type]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -84,11 +79,11 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         with Pump.open(cfg) as pump:
-            report = diagnose(pump)
-    except DiagnosticError as exc:
+            report = pump.diagnose()
+    except Pump.DiagnosticError as exc:
         print(f"DIAGNOSTIC FAILED: {exc}", file=sys.stderr)
         return 2
-    except Exception as exc:  # pragma: no cover  # defensive; covered by upstream typed errors
+    except Exception as exc:  # pragma: no cover
         print(f"UNEXPECTED ERROR: {exc}", file=sys.stderr)
         return 3
 

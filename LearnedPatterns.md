@@ -3,7 +3,7 @@
 > Patterns extracted from [ToDo.md](ToDo.md) Completed items. Consult the relevant sections before drafting new ToDo entries. Append new patterns after each task completes.
 >
 > Last updated: 2026-05-15
-> Total patterns: 10
+> Total patterns: 15
 >
 > Provenance format: `(from ToDo#N)` where N is the 1-based index of the top-level `##` section in `ToDo.md` at the time of extraction. Patterns extracted from design rather than from completed work use `(from DESIGN.md §N)` until a corresponding ToDo item lands.
 
@@ -52,6 +52,13 @@
 - **Fix**: `DTTransport.send` now finds the first `/` in the buffer and drops anything before it; `parse_reply` stays strict (still rejects malformed frames). Strip happens only at the transport boundary so the parser remains a useful sentinel for genuinely corrupt frames. Pinned by `TestLeadingGarbageTolerance` in `tests/test_protocol.py`.
 - **Rule**: Always treat the first reply after open as potentially preceded by line garbage on a CH340 dongle. Strip pre-start bytes at the transport layer, never silently in the parser. (from ToDo#4, ToDo#10 HIL)
 
+### G6. Frozen+slots dataclass nested in another class can't reference enclosing types for defaults
+
+- **Problem**: `step_mode: Pump.StepMode = Pump.StepMode.NORMAL` inside `class Pump.Config` failed at class-definition time because the outer name `Pump` did not yet exist when the body of `Config` ran. (Python's class body scopes do *not* enclose nested class bodies the way function scopes enclose nested functions.)
+- **Cause**: Field-default expressions on `@dataclass` are evaluated when the dataclass class is being constructed — which is *during* the outer class's body, before the outer class has been bound to its name. `Pump.StepMode.NORMAL` is therefore unresolvable. Same problem applies to any class-attribute access on the enclosing class for use as a default.
+- **Fix**: Use `field(default_factory=lambda: Pump.StepMode.NORMAL)`. The factory closure is evaluated at instance-construction time, by which point `Pump` is fully defined.
+- **Rule**: When nesting a frozen+slots dataclass inside another class, any default that references an enclosing-class attribute must go through `field(default_factory=lambda: ...)`. Bare-name defaults from the *same* class body (e.g. `_DEVICE_ERROR_BY_CODE = {...}` after every DeviceError subclass is defined) still work because they resolve in the body's local namespace. (from ToDo#0, consolidation refactor)
+
 ---
 
 ## §3. Library Quirks
@@ -92,6 +99,11 @@
 - **Lesson**: 104 unit tests, including a `test_identity.py` suite that "verified" software version + serial number retrieval, all passed against a `FakeTransport` whose replies I wrote myself based on the manual. The first HIL run against a real pump immediately surfaced two facts the fakes could not: (1) the CH340 dongle prefaces the first reply with `0xFF`, and (2) the real firmware reports `8.33` for `?23`, not the manual's `V1.4`. Calling FakeTransport-based tests "verification" without a HIL pass overstates what the green tests prove.
 - **Rule**: Distinguish "software-path verified" (FakeTransport tests pass) from "hardware-verified" (a real-pump run produced the expected behavior). Use the former label only for the former state. Run a HIL probe before promising the latter to anyone. (from ToDo#10 HIL)
 
+### W6. A targeted refactor surfaces latent bugs that the original author missed
+
+- **Lesson**: While moving `DTTransport.send` into `Pump._send_and_receive`, a rename of the local `start` variable surfaced that the original code rebinds the same name to two completely different values: a `time.monotonic()` wall-clock anchor at loop entry, and a `buf.find(b"/")` byte offset inside the ETX-found branch. The function happened to return immediately after the second binding, so no active bug — but a future edit that moved the timeout check below the second binding would have silently broken timeout enforcement. The bug only became visible because the refactor forced us to name the *roles* (`deadline_anchor` vs `frame_start`), not the local placeholders.
+- **Rule**: When moving code, rename ambiguous locals to describe their semantic role even if the original code "works." A variable whose lifetime spans two different semantic roles is a refactoring footgun; surfacing it during a consolidation is an unforced win. (from consolidation refactor)
+
 ---
 
 ## §5. Environment Specifics
@@ -100,6 +112,21 @@
 
 - **Note**: Manual [SY01BE.pdf](SY01BE.pdf) Chapter 8 lists pump versions as `V1.0`, `V1.3`, `V1.4` — but those are the **product version** (the manual's own revision history), not what the firmware emits over the wire. Empirically (`main.py` on the lab pump, 2026-05-15), `?23` returned `8.33`. The serial-number command `?202` returned a 5-digit integer (`32656`), not a structured "RZ-..." string.
 - **Rule**: Treat manual content tables as documentation of capabilities and command names, but never as oracles for *response strings*. Write parsers against the documented framing only; trust the wire for the actual payload format. When the FakeTransport scripts a "realistic-looking" reply for a test, mark that string as illustrative-only, not a contract. (from ToDo#10 HIL)
+
+### E2. `?76` config reply is a pipe-delimited 7-field blob
+
+- **Note**: Empirically (`sy01b-diagnose` against the lab pump on 2026-05-15), `?76` returns `4 way|9600|100K|TSY|high|XLP|AUTO`. The fields appear to mean: valve type (`4 way` = 4-port distribution), baud (`9600`), some capacity/buffer marker (`100K`), motor encoder mode (`TSY`), power level (`high`), motor protocol (`XLP`), boot mode (`AUTO`). The manual documents `?76` only as "Report pump configuration" with no field-by-field layout, so this is the first concrete record of what the format actually looks like.
+- **Rule**: Do not try to parse `?76` fields by index until a second pump confirms the layout is stable across units and firmware versions. For now, log the raw blob into the `DiagnosticsReport.config` field as-is and use `?23`/`?202` for any identity-driven logic. (from consolidation HIL)
+
+### E3. Pre-init `?6` (valve position) returns the literal byte `?`
+
+- **Note**: After power-on and before `ZR`, the lab pump answered `?6` with the data byte `?` (ASCII 0x3F). This is neither a numeric port (1..N) nor one of the documented `I`/`O`/`B`/`E` codes. The firmware appears to use `?` to mean "valve position unknown until initialized" — consistent with the SY-01B's design that valve indexing is meaningless until the encoder homes.
+- **Rule**: `pump.query_valve_position()` must tolerate the literal `?` return and not try to coerce it into an enum. The `diagnose()` flow already passes it through as a string into `DiagnosticsReport.valve_position`; do not tighten that type to an enum or to `int`. (from consolidation HIL)
+
+### E4. `Q` reports `busy=True, error=OK` pre-init even though the pump is mechanically idle
+
+- **Note**: After power-on and before `ZR`, the lab pump's `Q` reply decoded to `busy=True, error=OK` (status byte `0x60`). The pump is not actually moving — it is sitting uninitialized — yet the busy bit is set. CLAUDE.md already warns that the busy bit on *non-Q* replies is unreliable; this run shows the bit on `Q` itself is also misleading in the pre-init state.
+- **Rule**: Do not use `Q`'s busy bit alone to decide "is it safe to send a move?" in pre-init contexts. The diagnostic flow's `ok_to_initialize` criterion correctly looks only at the error nibble (`error in {OK, NOT_INITIALIZED}`), not at busy. When `_wait_until_ready` is implemented for motion commands, treat the busy bit as informative only on `Q` replies that follow a known motion command, and even then cross-check against elapsed time. (from consolidation HIL)
 
 ---
 

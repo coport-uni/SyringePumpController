@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import sys
 
-from sy01b import Pump, PumpConfig, StepMode
+from sy01b import Pump
 
 
 def main() -> int:
@@ -19,12 +19,12 @@ def main() -> int:
         format="%(asctime)s %(levelname)-7s %(name)s: %(message)s",
         stream=sys.stderr,
     )
-    cfg = PumpConfig(
+    cfg = Pump.Config(
         port="/dev/ttyUSB1",
         address=1,
         baud=9600,
         syringe_uL=125,
-        step_mode=StepMode.NORMAL,
+        step_mode=Pump.StepMode.NORMAL,
         reply_timeout_s=2.0,
     )
 
