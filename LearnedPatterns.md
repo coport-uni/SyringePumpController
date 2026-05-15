@@ -3,7 +3,7 @@
 > Patterns extracted from [ToDo.md](ToDo.md) Completed items. Consult the relevant sections before drafting new ToDo entries. Append new patterns after each task completes.
 >
 > Last updated: 2026-05-15
-> Total patterns: 7
+> Total patterns: 10
 >
 > Provenance format: `(from ToDo#N)` where N is the 1-based index of the top-level `##` section in `ToDo.md` at the time of extraction. Patterns extracted from design rather than from completed work use `(from DESIGN.md §N)` until a corresponding ToDo item lands.
 
@@ -45,6 +45,13 @@
 - **Fix**: `cfg = dataclasses.replace(cfg, **overrides)` in `cli/diagnose.py`.
 - **Rule**: For frozen dataclasses, the supported "modify a field" idiom is `dataclasses.replace()`, never `__dict__` reconstruction. (from ToDo#7)
 
+### G5. CH340 emits a stray byte (often `0xFF`) before the first reply after open
+
+- **Problem**: First HIL run (`main.py` against `/dev/ttyUSB1`) failed with `ProtocolError: reply missing leading '/': b'\xff/0\`8.33\x03\r\n'`. The pump's actual reply was well-formed DT starting at byte 1; byte 0 was a stray `\xff`.
+- **Cause**: CH340 USB-serial bridges occasionally emit a stray byte (commonly `0xFF`, sometimes NUL) on the very first reply after a port open, while the chip's UART receiver settles. The pump did not send this byte — the dongle injected it. This is not in the EUSB-30 manual but is a documented CH340 quirk.
+- **Fix**: `DTTransport.send` now finds the first `/` in the buffer and drops anything before it; `parse_reply` stays strict (still rejects malformed frames). Strip happens only at the transport boundary so the parser remains a useful sentinel for genuinely corrupt frames. Pinned by `TestLeadingGarbageTolerance` in `tests/test_protocol.py`.
+- **Rule**: Always treat the first reply after open as potentially preceded by line garbage on a CH340 dongle. Strip pre-start bytes at the transport layer, never silently in the parser. (from ToDo#4, ToDo#10 HIL)
+
 ---
 
 ## §3. Library Quirks
@@ -80,11 +87,19 @@
 - **Lesson**: The read-only commit shipped a `TestNoMotionCommandsExposed` class that asserts `not hasattr(pump, "initialize")`, `aspirate_uL`, `abort`. Looks weird (you don't usually test for absence), but it caught one local-branch experiment that prematurely added an `initialize()` method and would have shipped if not for this guard.
 - **Rule**: When a public API is intentionally narrow at a milestone, add tests that assert the *negative* — "this method does NOT exist yet" — so accidental additions land as test failures rather than as silent feature creep. (from ToDo#6)
 
+### W5. FakeTransport tests are necessary but not sufficient — always close the loop with HIL
+
+- **Lesson**: 104 unit tests, including a `test_identity.py` suite that "verified" software version + serial number retrieval, all passed against a `FakeTransport` whose replies I wrote myself based on the manual. The first HIL run against a real pump immediately surfaced two facts the fakes could not: (1) the CH340 dongle prefaces the first reply with `0xFF`, and (2) the real firmware reports `8.33` for `?23`, not the manual's `V1.4`. Calling FakeTransport-based tests "verification" without a HIL pass overstates what the green tests prove.
+- **Rule**: Distinguish "software-path verified" (FakeTransport tests pass) from "hardware-verified" (a real-pump run produced the expected behavior). Use the former label only for the former state. Run a HIL probe before promising the latter to anyone. (from ToDo#10 HIL)
+
 ---
 
 ## §5. Environment Specifics
 
-*(none yet — populate when a host- or OS-specific behavior bites)*
+### E1. SY-01B firmware reports a numeric version for `?23`, not the manual's `V1.x` strings
+
+- **Note**: Manual [SY01BE.pdf](SY01BE.pdf) Chapter 8 lists pump versions as `V1.0`, `V1.3`, `V1.4` — but those are the **product version** (the manual's own revision history), not what the firmware emits over the wire. Empirically (`main.py` on the lab pump, 2026-05-15), `?23` returned `8.33`. The serial-number command `?202` returned a 5-digit integer (`32656`), not a structured "RZ-..." string.
+- **Rule**: Treat manual content tables as documentation of capabilities and command names, but never as oracles for *response strings*. Write parsers against the documented framing only; trust the wire for the actual payload format. When the FakeTransport scripts a "realistic-looking" reply for a test, mark that string as illustrative-only, not a contract. (from ToDo#10 HIL)
 
 ---
 

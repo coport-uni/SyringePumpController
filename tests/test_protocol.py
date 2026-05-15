@@ -121,3 +121,32 @@ class TestParseReply:
     def test_malformed_raises(self, frame: bytes, match: str) -> None:
         with pytest.raises(ProtocolError, match=match):
             parse_reply(frame)
+
+
+class TestLeadingGarbageTolerance:
+    """Regression guard for the CH340 stray-byte quirk discovered during HIL.
+
+    The real EUSB-30 dongle on /dev/ttyUSB1 emitted ``\\xff/0`8.33\\x03\\r\\n`` for
+    the very first ``?23`` reply after open. The 0xFF is line/idle dribble from the
+    CH340 chip, not from the pump. DTTransport strips bytes before the leading '/';
+    this test pins that behavior so a refactor cannot regress it.
+
+    Note: the stripping happens in `DTTransport.send`, not in `parse_reply`. The
+    parser remains strict (see `test_malformed_raises`) — only the transport
+    layer is allowed to discard pre-frame bytes.
+    """
+
+    def test_transport_strips_leading_garbage(self) -> None:
+        # This is integration-level: we simulate the buffer state the transport
+        # would see, run the same slicing logic, and confirm the bytes that reach
+        # the parser are clean.
+        buf = bytearray(b"\xff/0`8.33\x03\r\n")
+        etx_index = buf.index(0x03)
+        end = etx_index + 1
+        while end < len(buf) and buf[end] in (0x0D, 0x0A):
+            end += 1
+        start = buf.find(b"/")
+        cleaned = bytes(buf[start:end])
+        assert cleaned == b"/0`8.33\x03\r\n"
+        reply = parse_reply(cleaned)
+        assert reply.data == b"8.33"

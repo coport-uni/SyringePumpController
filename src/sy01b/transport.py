@@ -70,7 +70,11 @@ class DTTransport:
                     end = buf.index(ETX) + 1
                     while end < len(buf) and buf[end] in (0x0D, 0x0A):
                         end += 1
-                    reply = bytes(buf[:end])
+                    # CH340 dongles occasionally emit a stray byte (0xFF, NUL, etc.) before
+                    # the start-of-frame on the first reply after open. The frame itself
+                    # starts at the first '/'; drop anything before it.
+                    start = buf.find(b"/")
+                    reply = bytes(buf[start:end]) if 0 <= start < end else bytes(buf[:end])
                     logger.debug("← %s", hex_preview(reply))
                     return reply
             if time.monotonic() - start > deadline_s:
