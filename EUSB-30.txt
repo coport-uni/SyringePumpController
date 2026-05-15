@@ -1,0 +1,147 @@
+V 1.3
+                                                                Content
+Chapter 1 product introduction ..........................................................................................2
+  1.1 Company Overview ............................................................................................................................ 2
+  1.2 Product Overview ............................................................................................................................... 2
+
+Chapter 2 main functions....................................................................................................3
+  2.1 Product Features ................................................................................................................................ 3
+  2.2 DIP Switch .......................................................................................................................................... 3
+  2.3 Application .......................................................................................................................................... 3
+        2.3.1 RS232 ....................................................................................................................................... 3
+        2.3.2 RS485 ....................................................................................................................................... 3
+
+Chapter 3 version description ............................................................................................4
+
+Chapter 4 technical service ................................................................................................5
+
+
+
+
+www.runzeliuti.com                                                                                                                                          1
+                         Chapter 1 Product Introduction
+1.1 Company Overview
+     Nanjing Runze Fluid Control Equipment Co., Ltd., established in 2014, is a national high-tech enterprise
+
+focusing on R&D and production of fluid accessories for numerous analytical instruments. We engineer,
+
+manufacture and market differentiated standard products such as syringe pumps, multiport valves, peristaltic
+
+pumps, gastight syringes, plastic fittings, etc. We persevere in providing our customers with best quality and
+
+service in the fields of environmental monitoring, biopharmaceuticals, medical equipment, industrial
+
+automation and laboratory instruments, etc.
+
+     In past years, we have accumulated rich technical and practical experience that bring us honors of
+
+ISO9001, National High-tech Enterprise, Jiangsu Province Private Science and Technology Enterprise, 5A Bank
+
+Credit Assessment, 44 technical patents and software copyright including 2 invention patents, 27 utility model
+
+patents, 13 design patents, 2 software copyright.
+
+     RUNZE attracted experienced talents with strong capability on integrating software and hard-ware at
+
+electronic research, mechanical design, mold manufacturing. Continuous and substantial investment in
+
+research and development, which enabled the company to obtain a huge advantage in the manufacture and
+
+sales of analytical instrument accessories. RUNZE Technology Center has a reliable EMC laboratory and a
+
+series of advanced processing equipment and testing instruments, such as imported white light interferometer,
+
+Keens plane rapid detector, five-axis machining center, high-precision nano-grinding machine, etc.,
+
+Continuous and substantial investment in research and development, which enabled the company to obtain
+
+a huge advantage in the manufacture and sales of analytical instrument accessories.
+
+1.2 Product Overview
+     USB-30 is a tool for serial port debugging and communication test.
+
+
+
+
+www.runzeliuti.com                                                                                          2
+                              Chapter 2 Main Functions
+2.1 Product Features
+ 1. Support win platform such as Win98, Win2000, WinXP, Win7, Win8, Win10
+
+ 2. Support USB converts to RS232 or RS485
+
+ 3. Can be used to convert USB to the 485 signal, and can control 35 devices at the same time;
+
+ 4. Support high baud rate 115200
+
+ 5. Support self-defined serial port setting
+
+ 6. Free serial port debugging software
+
+ 7. Better than any other USB converter in the market
+
+ 8. Wiring is more suitable for Buyer DIY Need
+
+ 9. No external power supply required, USB interface can directly connect to computer
+
+ 10. Can supply 5V, 200mA current for external power supply, such as downloading program for Single-
+
+     Chip Microcomputer
+
+ 11. Equipped with signal light, red light flashes when data pass through
+
+2.2 DIP Switch
+       DIP Switch              Pin1                Pin2                     Pin3           Pin4
+     RS232 terminal            5V                   TXD                     TXD            GND
+     RS485 terminal            5V                   A+                      B+             GND
+
+2.3 Application
+
+        2.3.1 RS232
+
+
+
+
+        2.3.2 RS485
+
+
+
+
+www.runzeliuti.com                                                                                     3
+                     Chapter 3 Version Description
+       Version                Description            Release Time
+
+        V1.0                 Initial version          2022.6.22
+
+        V1.2                Update contacts           2022.6.28
+
+        V1.3                 Reformatting              2022.9.2
+
+
+
+
+www.runzeliuti.com                                                  4
+                      Chapter 4 Technical Service
+
+ Nanjing Runze Fluid Control Equipment Co.,LTD
+
+ Landline(FAX)       025-5119 7362
+
+ SALE                +86 173 6638 4502
+
+ Technical Service   +86 198 2581 4316
+
+ Email               runzeliuti@runzeliuti.com
+
+ Website             www.runzeliuti.com
+
+ Shop                https://runzeliuti.en.alibaba.com
+                     No.9 Tianxing West Road, Dongshan Street, Jiangning District, Nanjing,
+ Address
+                     Jiangsu Province, China
+
+
+
+
+www.runzeliuti.com                                                                            5
+

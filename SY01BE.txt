@@ -1,0 +1,3645 @@
+                     Version 1.2
+
+
+
+
+                           1
+www.runzeliuti.com
+Note: This manual applies to the RUNZE protocol of the infusion pump. If you are unsure of the protocol currently used by
+                             the pump, please first refer to P26 [Query and Switch Protocol].
+
+
+                                                  Table of Contents
+Chapter 1 Overview and Precautions ................................................................................... 4
+  1.1 Company Overview ..................................................................................................................................4
+  1.2 Product Overview .....................................................................................................................................4
+  1.3 Precautions .............................................................................................................................................. 4
+       1.3.1 Notifications and Symbols .............................................................................................................4
+         1.3.2 Electrostatic Discharge (ESD) Precautions ..................................................................................6
+
+Chapter 2 Key Technologies and Functions ........................................................................ 7
+  2.1 Product Features ......................................................................................................................................7
+  2.2 Model Naming Rules and Selection Guide ............................................................................................. 7
+         2.2.1 Model Parameters ......................................................................................................................... 7
+         2.2.2 SYRINGE SPECIFICATION ......................................................................................................... 8
+       2.2.3 Valve Head .................................................................................................................................... 9
+  2.3 Technical Specifications ........................................................................................................................ 10
+  2.4 Injection Accuracy and Volume Calculation of the Syringe Pump ........................................................11
+
+Chapter 3 Hardware Setting .................................................................................................12
+  3.1 Component Installation .......................................................................................................................... 12
+         3.1.1 Valve Installation ......................................................................................................................... 12
+         3.1.2 Syringe Installation ......................................................................................................................12
+         3.1.3 Pump Installation .........................................................................................................................12
+  3.2 Power and Electrical Considerations .....................................................................................................13
+       3.2.1 Power Supply Selection .............................................................................................................. 13
+         3.2.2 Integrated Power Supply .............................................................................................................14
+         3.2.3 Switching Power Supplies ...........................................................................................................14
+  3.3 Cable ...................................................................................................................................................... 15
+  3.4 Communication Interface .......................................................................................................................15
+         3.4.1 RS232/RS485 Interface .............................................................................................................. 16
+         3.4.2 CAN Interface ..............................................................................................................................16
+  3.5 Settings and Options ..............................................................................................................................16
+         3.5.1 Configuration Commands ........................................................................................................... 17
+         3.5.2 Address Switch Settings ............................................................................................................. 17
+         3.5.3 Self-Test ...................................................................................................................................... 17
+         3.5.4 Input/Output .................................................................................................................................17
+
+Chapter 4 Software Communication ................................................................................... 18
+  4.1 SY01B Addressing Scheme .................................................................................................................. 18
+  4.2 Communication Protocols ......................................................................................................................19
+         4.2.1 OEM Communication Protocol ................................................................................................... 19
+         4.2.2 Data Terminal (DT) Protocol ....................................................................................................... 21
+         4.2.3 Using DT Protocol with Microsoft Windows ................................................................................22
+
+                                                                                                                                                         2
+www.runzeliuti.com
+       4.2.4 CAN Interface Communication ................................................................................................... 23
+  4.3 Using the SY01B Command Set ........................................................................................................... 30
+         4.3.1 Command Execution Guidelines ................................................................................................ 30
+         4.3.2 Pump Configuration Commands .................................................................................................30
+  4.4 Initialization .............................................................................................................................................32
+         4.4.1 Initialization Forces ..................................................................................................................... 32
+       4.4.2 Initialization Commands ..............................................................................................................33
+  4.5 Operating Commands ............................................................................................................................35
+         4.5.1 Valve Commands ........................................................................................................................ 35
+         4.5.2 Plunger Movement Commands .................................................................................................. 40
+         4.5.3 Set Commands (Speed and Acceleration) ................................................................................. 41
+         4.5.4 Interaction of Set Commands ..................................................................................................... 45
+         4.5.5 Control Commands ..................................................................................................................... 45
+         4.5.6 Non-Volatile Memory (EEPROM) Commands ........................................................................... 48
+         4.5.7 Report Commands ...................................................................................................................... 50
+  4.6 Error Codes and Pump Status ...............................................................................................................52
+       4.6.1 Status Bit ..................................................................................................................................... 52
+         4.6.2 Error Codes ................................................................................................................................. 52
+         4.6.3 Error Types ..................................................................................................................................53
+
+Chapter 5 Setting Up the SY01B for Application ............................................................... 56
+  5.1 Glossary ................................................................................................................................................. 56
+  5.2 Optimizing SY01B Performance ............................................................................................................58
+  5.3 Helpful Hints ...........................................................................................................................................60
+
+Chapter 6 Common Problems & Solutions .........................................................................61
+Chapter 7 Quick Command ..................................................................................................62
+  A Communication Commands ..................................................................................................................... 62
+  B Command Quick Reference ..................................................................................................................... 62
+      B.1 Pump Configuration Commands ................................................................................................... 62
+         B.2 Initialization Commands .................................................................................................................63
+         B.3 Valve Commands ...........................................................................................................................64
+         B.4 Plunger Movement Commands/Status Bit Reports ...................................................................... 64
+         B.5 Non-Volatile Memory (EEPROM) Commands .............................................................................. 64
+         B.6 Report Commands .........................................................................................................................64
+         B.7 Error Codes and Status Byte .........................................................................................................65
+  C Switching Protocol .................................................................................................................................... 66
+
+Chapter 8 Version Description ............................................................................................ 67
+Chapter 9 Technical Services .............................................................................................. 68
+
+
+
+
+                                                                                                                                                        3
+www.runzeliuti.com
+                     Chapter 1 Overview and Precautions
+1.1 Company Overview
+       Nanjing Runze Fluid Control Equipment Co., Ltd., established in 2014, is a high-tech enterprise
+
+specializing in the development and manufacturing of fluid accessories, and a supplier of analytical
+
+instrument components. Our product range includes syringe pumps, switching valves, high-pressure valves,
+
+gas-tight samplers, peristaltic pumps, and tubing connectors. We offer comprehensive services covering the
+
+entire industry chain—from product customization, design and R&D, manufacturing, sales, to after-sales
+
+support—providing high-quality products and services for fields such as environmental monitoring,
+
+biopharmaceuticals, medical equipment, industrial automation, and laboratory instruments.
+
+       Since its founding, Runze has obtained ISO9001 certification and has been recognized as a “National
+
+High-Tech Enterprise” and a “Private Technology Enterprise in Jiangsu Province.” It has also been rated a
+
+5A credit customer by Bank of Nanjing. Through continuous investment in high technology and years of
+
+R&D efforts, the company has acquired 48 patents and several software copyrights in the fluid control field,
+
+including 8 invention patents, 17 utility model patents, 13 design patents, and 2 software copyrights.
+
+1.2 Product Overview
+       Thank you for purchasing the Smart SY-01B Syringe Pump from our company. This pump is a fully
+
+programmable, open-frame precision liquid delivery module designed for applications ranging from 25 µL
+
+to 5 mL. Controlled by an external computer or microprocessor, it supports automated fluid aspiration,
+
+dilution, and dispensing. Various distribution valves and syringes can be optionally configured to meet most
+
+users' high-precision liquid handling needs. Multiple pumps can also be connected in series for simultaneous
+
+use.
+
+The Smart SY-01B Syringe Pump delivers outstanding performance, providing strong support for users’
+
+research and applications, and helping them achieve expected results.
+
+1.3 Precautions
+       The Smart SY-01B Syringe Pump is specifically designed for aspiration and dispensing of liquids within
+
+the range of 25 µL to 5 mL. Any other usage is considered improper operation and may cause damage to the
+
+pump and affect measurement accuracy.
+
+       To enhance user safety awareness, this manual outlines the following warnings:
+
+       1.3.1 Notifications and Symbols
+
+
+                 。
+                                                                                                         4
+www.runzeliuti.com
+      Toxic Substances
+
+       Chemical or biological hazards may be associated with the substances used or the samples
+
+       processed by the SY-01B. Always be aware of the potential risks related to such materials.
+
+
+
+                  Explosion and Fire Hazards
+
+                   Do not use the SY-01B to handle flammable or explosive liquids.
+
+
+
+                  Mechanical Hazards
+
+                   Caution! Keep fingers away from the syringe slot while the pump is operating to avoid
+                   injury.
+
+      Usage Precautions
+
+           1. The device must be powered on and reset using the /1ZR command before any further
+
+                 instructions can be executed. If any abnormal condition occurs during operation, please
+
+                 reset the device with the /1ZR command.
+
+           2. The [z] command simulates piston initialization, but no mechanical action is triggered. This
+
+                 command is useful after an unexpected power outage to regain pump control. After
+
+                 recovery, use [z] to set the current position as the home (zero) position. Pump operation can
+
+                 resume after using [z], but to protect the device, it is recommended to reset the true home
+
+                 position using initialization commands Z<N1,N2,N3> or Y<N1,N2,N3>.
+
+           3. Ensure the voltage supplied matches the rated voltage of the device.
+
+           4. Use only the original serial cable and power adapter provided with this product.
+
+           5. This product supports three communication modes (RS232, RS485, and CAN bus), all of
+
+                 which are non-isolated.
+
+           6. If there are any unused ports, seal them tightly using the provided plugs and gaskets to
+
+                 prevent contamination or airflow into the valve, which may affect normal operation.
+
+           7. Do not disassemble any product components. Warranty is void if the tamper-proof label is
+
+                 broken.
+
+           8. Follow the software operation instructions and communication protocol when operating via
+
+                 software. Do not input unauthorized or fabricated data.
+
+           9. When discarding the instrument, please follow relevant regulations for equipment disposal.
+
+                 Waste produced during or after use should be handled in compliance with national
+
+                 environmental protection standards. Do not discard arbitrarily.
+
+           10. Warning: Improper use of the SY-01B can pose risks to users, property, and the
+                                                                                                        5
+www.runzeliuti.com
+                environment. To ensure safe and correct operation, follow these guidelines:
+
+                        Ensure that liquid flows between the syringe and the valve; otherwise, the sealing
+
+                         surface may be damaged.
+
+                        Power off the device before connecting or disconnecting the pump.
+
+            11. When using different syringe models, it is necessary to set different stall current values for
+
+                proper reset. Refer to the table below for suggested values.
+
+                Note: These are reference values only. If the reset fails due to high internal pressure, increase
+                the current value incrementally (+1) as needed.
+
+                                                   Syringe Reset Stall Current Setting
+                                       25μl syringe                                      /1U200,4R
+                                  50μl~1.25mL syringe                                    /1U200,5R
+                                  2.5mL、5mL syringe                                      /1U200,6R
+
+    1.3.2 Electrostatic Discharge (ESD) Precautions
+    The SY-01B is an electronic device sensitive to electrostatic discharge (ESD). Its components can be
+
+damaged by static discharge from clothing or fixed equipment. To prevent pump component failure,
+
+effective ESD protection measures must be taken during operation. Examples include, but are not limited to:
+
+       Use of anti-static wrist or ankle straps
+
+       Use of anti-static mats or ESD-protected workbenches
+
+       Applying anti-static floor wax to the working area
+
+
+
+
+                                                                                                           6
+www.runzeliuti.com
+                     Chapter 2 Key Technologies and Functions
+2.1 Product Features
+      Upgraded syringe mounting fits Runze K/ILS-series syringes interchangeably.
+
+      Integrated encoder system for feedback regulation, improving accuracy
+
+      Enhanced EMC performance: power circuitry includes common-mode interference suppression,
+
+       self-resetting fuses, and transient voltage suppression diodes, improving overall surge protection
+
+      New rotary DIP switch for address configuration based on switch settings
+
+      New optical encoder disc system for valve positioning, offering three key benefits:
+
+       ① Enhanced resistance to input signal interference
+
+       ② Improved and simplified internal structure and manufacturing process
+
+       ③ Improved error correction during rotational movement
+
+      Ceramic valve core offers excellent wear resistance, high temperature tolerance, corrosion resistance,
+
+       superior sealing, low friction, and long service life
+
+2.2 Model Naming Rules and Selection Guide
+    2.2.1 Model Parameters
+    1. Valve head with channel aperture sizes: 1.2 mm / 2.0 mm
+
+
+
+
+           2、Valve head with channel aperture sizes: 1.0 mm
+
+
+
+
+                                                                                                       7
+www.runzeliuti.com
+Example: For a syringe pump configured with a T04 valve head, 1.0 mm flow path aperture, ceramic valve
+
+core, and PPS valve head material, the model should be designated as: ZSB-SY01B-T04-K1.0-C-U
+
+Notes:
+
+        Ceramic Valve Head Naming Rules:
+
+        Non-distribution valves are uniformly prefixed with “M”, followed by the number of channels
+
+         (including the C port) based on flow path configuration.
+
+        Distribution valves are prefixed with “T”, followed by the number of channels (excluding the C
+
+         port).
+
+        Aperture Specifications:
+
+        Models T-04 / T-06 / T-08 / T-10 / T-12 / (T09) are only available with 1.0 mm through-hole
+
+         diameters.
+
+        Models MY-3 / MT-3 / MC-4 / MCC-4 / T-03 support selectable through-hole diameters of 1.2 mm
+
+         or 2.0 mm.
+
+        Material Limitations:
+
+        For the five compact valve heads: MY-3 / MT-3 / MC-4 / MCC-4 / T-03, the valve heads use an
+
+         integrated ceramic structure and cannot be customized with alternative housing materials.
+
+        2.2.2 Optional Syringe Models
+
+        Compatible with Runze K30 series syringes (30 mm stroke length).
+
+       2.2.2 SYRINGE SPECIFICATION
+    RUNZE K30（Stroke 30mm）
+
+                                               SPECIFICATION
+
+
+                                                                                                       8
+www.runzeliuti.com
+    25ul         50ul          125ul            250ul            500µl      1.25ml        2.5ml         5ml
+
+
+    2.2.3 Valve Head
+                                                                         Valve Model: MY-3
+                                                                         Flow Path Control: Non-distribution
+                                                                         Valve – Y-type Flow Path
+                                                                         Flow Path States:
+                                                                               C–ON Connected
+     state1           state2           state3                                  ON–OFF Connected
+                                                                               C–OFF Connected
+                                                                         Valve Model: MT-3
+                                                                         Flow Path Control: Non-distribution
+                                                                         Valve – T-type Flow Path
+                                                                         Flow Path States:
+                                                                          C–ON–OFF Connected
+   state1       state2            state3                state4            C–ON Connected
+                                                                          ON–OFF Connected
+                                                                          C–OFF Connected
+
+                                                                         Valve Model: MC-4
+                                                                         Flow Path Control: Non-distribution
+                                                                         Valve – Single Selection Flow Path
+                                                                         Flow Path States:
+                                                                          C–1 Connected
+   state1       state2             state3               state4            1–2 Connected
+                                                                          2–3 Connected
+                                                                          C–3 Connected
+                                                                         Valve Model: MCC-4
+                                                                         Flow Path Control: Non-distribution
+                                                                         Valve – Dual Selection Flow Path
+                                                                         Flow Path States:
+                                                                          C–1 and 2–3 Connected
+     state1          state2                                               C–3 and 1–2 Connected
+                     Valve Model: T-03                                         Valve Model: T-04
+                     Flow Path Control: 3-Port                                 Flow Path Control: 4-Port
+                     Distribution Type Flow Path                               Distribution Type Flow Path
+                     (C port selectively connected to                          (C port selectively connected to
+                     ports 1–3)                                                ports 1–4)
+                     Valve Model: T-06                                          Valve Model: T-08
+                     Flow Path Control: 6-Port                                  Flow Path Control: 8-Port
+                     Distribution Type Flow Path                                Distribution Type Flow Path
+                     (C port selectively connected to                           (C port selectively connected to
+                     ports 1–6)                                                 ports 1–8)
+
+
+
+
+                                                                                                               9
+www.runzeliuti.com
+                     Valve Model: T-10
+                                                                           Valve Model: T-12
+                     Flow Path Control: 10-Port
+                                                                           Flow Path Control: 12-Port
+                     Distribution Type Flow Path
+                                                                           Distribution Type Flow Path
+                     (C port selectively connected to
+                                                                           (C port selectively connected to
+                     ports 1–10)
+                                                                           ports 1–15)
+
+
+                     Valve Model: (Custom) T-09
+                     Flow Path Control: 9-Port Distribution Type Flow Path
+                     (C port selectively connected to ports 1–9)
+
+
+
+
+2.3 Technical Specifications
+ Item                                 Parameter
+ Liquid Volume Accuracy               Error ≤ 1% (rated stroke)
+ Liquid Volume Precision              Repeatability error 0.3%–0.5% (rated stroke)
+ Rated Stroke (Control Steps)         30mm（12000 steps）
+ Linear Speed                         450rpm
+ Rated Stroke Operation Time          300rpm
+ Control Resolution / Minimum
+                                      0.0333 mm/s-15mm/s
+ Dispensing Precision
+ Drive Mechanism                      2s-900s
+ Max Piston Drive Force               0.005mm/1步
+ Secondary Piston Drive Force         Trapezoidal screw (lead 2 mm)
+ Syringe Options (Optional)           ≥80N
+ Valve Head Types (Optional)          ≥40N
+ Valve Orifice Diameter               25μl、50μl、125μl、250μl、500μl、1.25ml、2.5ml、5ml
+                                      MY-3、MT-3、MC-4、MCC-4、 T-04、T-06、T-08、T-10、T-09、
+ Valve Switching Time
+                                      T-03                  T12
+ Wetted Material                      1.2mm 、2.0mm                     1.0mm
+ Max Reference Liquid Pressure        ≤ 640 ms (between adjacent ports)
+ Tubing Interface                     Alumina ceramic
+ Syringe Interface                    0.6 MPa
+ Communication Interfaces             1/4-28 UNF internal thread
+ Communication Baud Rates             1/4-28 UNF internal thread
+ Item                                 RS232 / RS485 / CAN bus
+                                      RS232/485：9600bps/19200bps/38400bps/57600bps/115200bps
+ Liquid Volume Accuracy
+                                      CAN：100kbps/200kbps/500kbps/1Mpbs
+ Device Address and Parameter
+                                      Communication interface
+ Settings
+ Applicable Power Supply              DC24V/3A
+ Operating Ambient Temperature        5℃-55℃
+                                                                                                        10
+www.runzeliuti.com
+ Operating Relative Humidity        ＜80%
+ Dimensions (L × W × H)             142.7*127*45mm
+ Weight                             1.5kg
+
+
+
+
+2.4 Injection Accuracy and Volume Calculation of the Syringe Pump
+      Example 1: Using a 5 mL syringe (with a 30 mm stroke), the resolution per step is calculated as
+
+  follows:
+
+       5 mL = 5000 µL
+
+       30 mm = 12,000 steps
+
+       5000 µL12000 steps=0.4167 µL/step\frac{5000 µL}{12000 steps}                                        =
+
+  0.4167 µL/step12000 steps5000 µL​ =0.4167 µL/step
+
+      Note: Each step of the syringe pump corresponds to a volume of 0.4167 µL, which is the minimum
+
+  resolution for a 5 mL syringe.
+
+
+
+      Example 2: To dispense 3.8 mL of liquid using the syringe pump, calculate the required steps:
+
+       3.8 mL = 3800 µL
+
+       3800 µL0.4167 µL/st≈9119\frac{3800 µL}{0.4167 µL/step} ≈ 91190.4167 µL/step3800 µL​           ≈9119
+
+  steps (rounded)
+
+       Therefore, to dispense 3.8 mL, set the syringe pump to 9119 steps
+
+       Hexadecimal value: 9119 (decimal) = 239F (hexadecimal)
+
+      Note: All calculations above are in decimal. However, when using debugging tools or writing control
+
+  code, parameters must be input in hexadecimal format.
+
+
+
+
+                                                                                                       11
+www.runzeliuti.com
+                             Chapter 3 Hardware Setting
+3.1 Component Installation
+
+     3.1.1 Valve Installation
+     The SY-01B does not support user-replacement of the valve head assembly. If the valve head needs to
+
+be replaced, please contact customer service.
+
+     3.1.2 Syringe Installation
+     To install the syringe, follow these steps:
+
+     Remove the hand-tightened screw
+
+     Follow the steps below as shown in
+
+Figure 3-1-2 to install the syringe:
+
+     a. Align the syringe’s threaded
+
+port with the installation port and screw
+
+it into the valve
+
+     b. Keep the plunger bracket and
+
+plunger aligned horizontally, then pull
+
+the plunger downward
+
+     c. Insert the syringe plunger rod through the hole in the plunger bracket
+
+     d. Once the holes are aligned, secure them with a screw
+
+     Note:    1. Ensure the hand-tightened screw is fastened securely and the plunger can move freely.
+
+
+
+
+     2. For valve heads T-04/T-06/T-08/T-09/T-10/T-12, a gasket must be added to the common port.
+
+
+
+     3.1.3 Pump Installation
+     For ease of installation, please refer to Figure 2-4, which shows the dimensions and positions of key
+
+mounting holes on the SY-01B outline diagram.
+
+
+
+
+                                                                                                         12
+www.runzeliuti.com
+                                       图3-1-3 SY-01B外形缩略图
+
+
+3.2 Power and Electrical Considerations
+    SY-01B requires a 24V DC power supply providing at least 1.5A via a DB15 connector. It is
+recommended to use one power cable for every two pumps to enhance noise resistance — avoid
+daisy-chaining more than two pumps on a single power line.
+
+    3.2.1 Power Supply Selection
+    A single SY-01B 24V DC power supply must meet the following basic requirements:
+
+      Output Voltage: Rated at 24V.
+
+
+                                                                                            13
+www.runzeliuti.com
+       Stability: A high-performance and stable power source is recommended, as voltages below 24V
+
+        may affect pump performance.
+
+       Current Rating: At least 1.5A.
+
+       Compliance: Must meet safety standards and EMI/RFI specifications.
+
+    3.2.2 Integrated Power Supply
+    When the power supply serves multiple SY-01B units or other devices, it must meet the total peak
+
+current demand of all connected equipment. The power supply and filtering capacitors must collectively
+
+support the total peak input current.
+
+    If not all pumps are operated simultaneously, the rated power requirement can be reduced accordingly,
+
+with the minimum current rating based on actual testing.
+
+    Inadequate bypass capacitance can lead to voltage fluctuations, transient currents, and reduced
+
+component lifespan. Additionally, insufficient filtering capacitance may destabilize otherwise stable power
+
+sources, causing load stress, vibration, or component failure. Using a well-designed commercial power
+
+supply can effectively prevent these issues.
+
+    Wiring Considerations:
+
+      Wiring for SY-01B and its accessories should be as short as possible, with sufficient current capacity.
+
+      Use no less than 20AWG wire unless safety demands otherwise.
+
+      With proper wiring and power, SY-01B units can be daisy-chained.
+
+      For daisy-chaining six units, use 18AWG twisted pairs connected head-to-tail.
+
+    For more details on multi-pump systems, refer to Section 2.2 “Cabling”.
+
+    To control power to the SY-01B, avoid using relays or contact switches to connect the 24V DC supply
+
+directly — the injection pump must not be powered directly from a DC source.
+
+    3.2.3 Switching Power Supplies
+    Carefully verify the minimum load requirements of your switching power supply.
+
+Typically, such supplies require a minimum load of 10% of their rated output current.
+
+    Note: SY-01B's idle current is less than 10% of its full-load current.
+
+    For example, in a daisy-chained system where only one SY-01B runs at low motor speed and others
+
+remain in a low-power state, a 24V 5A switching power supply with a minimum load requirement of 50mA
+
+may fail to deliver sufficient current. If SY-01B is the only load, the converter's minimum load spec should be
+
+≤50mA. Alternatively, an appropriate external power resistor may be used to meet the minimum load
+
+requirement.
+
+
+
+                                                                                                         14
+www.runzeliuti.com
+3.3 Cable
+    A single cable can provide both power and communication for one SY-01B unit. Each pump module has
+
+a unique address identifier. For more information, refer to the “Address Switch Settings” section later in
+
+this chapter. Also see Chapter 3, “Software Communication”.
+
+    Power requirements are described in Section 3.1, “Power and Electrical Considerations.”
+
+  Pin          Function                  Remarks
+   1            24vDC
+   2        RS-232TxD                   Output data
+   3        RS-232RxD                    Input data
+   4          Reserved
+   5            CAN H                      CAN H
+   6            CAN L                      CAN L
+   7      Auxiliary Input #1            TTL Voltage
+   8      Auxiliary Input #2            TTL Voltage
+   9             GND               Power and Logic Ground
+  10             GND               Power and Logic Ground
+  11         RS-485 A                      Data+
+  12         RS-485 B                      Data-
+  13      Auxiliary Input #1            TTL Voltage
+  14      Auxiliary Input #2            TTL Voltage
+                                                                         Fig 3-3 DB-15 Connector Pins
+  15      Auxiliary Input #3            TTL Voltage
+                 Table 3-3 DB-15 Connector Pin Assignment
+
+    The diagram shows the pin configuration of the DB-15 connector on the integrated circuit module. This is a
+
+male connector and requires a corresponding female connector to mate with it.
+
+3.4 Communication Interface
+    The computer or controller connects to the SY-01B via RS-232, RS-485, or CAN interface. The SY-01B
+
+can automatically detect the communication interface. An example of the wiring connection is shown in the
+
+diagram below.
+
+                      DIP switch 0        DIP switch1                               DIP switchE
+
+ master     RS-232        1#                    RS-485
+                                                 2#                           RS-485      15#
+  or                      device                 device                                   device
+ PC                                                                  ......
+
+                      DIP switch0        DIP switch1                                DIP switchE
+
+
+ master     RS-485        1#                    RS-485
+                                                 2#                           RS-485      15#
+  or                      device                 device                                   device
+ PC                                                                  ......
+
+                                                                                                          15
+www.runzeliuti.com
+                      DIP switch0       DIP switch1                               DIP switchE
+
+  master      CAN         1#        CAN         2#                            CAN      15#
+   or                     device                device                                 device
+  PC                                                                 ......
+
+
+
+     3.4.1 RS232/RS485 Interface
+     To facilitate connection of devices on the SY-01B RS-485 communication bus, the RS-232 can
+
+automatically convert the protocol to RS-485 (commonly referred to as a "multi-point" device).
+
+     Note: The RS-232 port lacks hardware handshaking and needs only three wires: receive data, transmit
+
+data, and signal ground. In multi-point setups, one controller can manage up to 15 pumps on the same bus.
+
+Always verify RS-485 A/B wiring via the diagrams, which also illustrate RS-232/RS-485 connections and
+
+external termination setups.
+
+
+
+
+                                     Figure 2-2 RS232 to RS485 Cabling
+    3.4.2 CAN Interface
+     The CAN interface is a two-wire serial system. The bus is driven in a manner similar to RS485. The main
+
+difference lies in the protocol.
+
+3.5 Settings and Options
+                                                                                                       16
+www.runzeliuti.com
+    3.5.1 Configuration Commands
+    The SY-01B firmware allows users to configure the pump in different modes during operation.
+
+The U command (refer to Chapter 3 "Software Communication") is used to write configuration information
+
+to read-only memory and control the following options:
+
+       Baud Rate: For RS-232/RS-485, supported communication baud rates are 9600 (default) and 38400.
+
+For CAN, the default is 100K; also supports 125K, 250K, 500K, and 1M baud rates.
+
+       ROM Auto Mode: Enables the pump to run command strings stored in ROM.
+
+       Stall Current: Allows the pump to set a reset stall current based on syringe size.
+
+     3.5.2 Address Switch Settings
+    The address switch is located near the bottom of the SY-01B circuit board. It is used to assign a unique
+
+or specific address to each SY-01B unit in multi-pump configurations, allowing the user to issue commands
+
+to a particular pump.
+
+The switch has 16 positions (0 to F), with 15 positions (addresses 0 to E) being valid for pump addressing.
+
+    To set the address switch:
+
+Use a small flat-head screwdriver to rotate the switch to the desired address.
+
+Note: Set the address switch after powering on the pump. For details on addressing schemes for
+
+multi-pump configurations, refer to Chapter 3 "Software Communication".
+
+     3.5.3 Self-Test
+    The "F" address switch position activates the SY-01B self-test. The self-test initializes the SY-01B and
+
+repeatedly runs reciprocating plunger movements. The self-test cycles through speed codes from 5 to 40 in
+
+steps of 5. If an error is detected, the pump stops.
+
+    To run a self-test:
+
+    Set the address switch to position "F", then power on the pump.
+
+    Warning: Keep liquid flow between syringe and valve; failure may damage both.
+
+    3.5.4 Input/Output
+    The SY-01B provides two auxiliary inputs and three auxiliary outputs via the DB-15 connector. These
+
+are TTL-level signals.
+
+    Outputs are controlled using the J command.
+
+    The auxiliary inputs (pins 7 and 8) can be read using the ?13 and ?14 commands. External triggers can
+
+be received via the [H] command. These commands are further described in Chapter 3 "Software
+
+Communication".
+
+
+
+                                                                                                         17
+www.runzeliuti.com
+                       Chapter 4 Software Communication
+4.1 SY01B Addressing Scheme
+    As part of the communication protocol, an address for each pump must be specified. The user has the
+
+option of addressing a single pump, two pumps (dual device), four pumps (quad device), or all 15 pumps (all
+
+devices), depending on the address byte used. Each physical address in the address switch corresponds to a
+
+    hexadecimal value, as shown in Table 3-1, Hexadecimal Addressing Scheme.
+
+         Address (hex)）
+                                                                                Device
+         RS-232/RS-485
+                 30                    Master Address (master controller, personal computer, etc.)
+               31…3F                   Addresses single device
+               41…4F                   Addresses two devices at a time (dual device)
+              51…5D                    Addresses four devices at a time (quad device)
+                 5F                    Addresses all devices on the bus
+
+    For example, an SY01B with address switch set to 0 is addressed as device“31h” in the RS-232 or
+
+RS-485 communication protocol, hardware address 1 is addressed as device “32h,” and so on.
+
+    Table 3-2, Address Switch Settings in Hex (ASCII), shows the different address switch settings for each
+
+of these configurations
+
+    Note: When using the Pump: Link software to send commands to a device, use the ASCII address values in Table 3-2.
+
+                Single Device               Dual Device                Quad Device              All Devices
+  Switch
+               Hex       ASCII            Hex       ASCII             Hex      ASCII                   Value to
+  Setting                                                                                    Address
+              Address   Address          Address   Address           Address Address                     Send
+     0            31           1
+                                             41            A
+     1            32           2
+                                                                           51            Q
+     2            33           3
+                                             43            C
+     3            34           4
+     4            35           5
+                                             45            E
+     5            36           6
+                                                                           55            U
+     6            37           7
+                                             47            G
+     7            38           8                                                                5F             _
+     8            39           9
+                                             49            I
+     9           3A             :
+                                                                           59            Y
+     A            3B            ;
+                                            4B             K
+     B           3C            <
+     C           3D            =
+                                            4D             M
+     D            3E           >                                           5D            ]
+     E            3F            ?            4F            O
+     F                                                         Self Test
+                                    Table 3-2 Address Switch Settings in Hex (ASCII)
+                                                                                                                18
+www.runzeliuti.com
+    The user can communicate with all pumps in the chain by using address “5Fh,” for example to initialize
+
+all pumps at once. Then each pump can be controlled independently by using addresses “31h” to “3Fh.”
+
+    Note: Multiple address commands cannot be used to determine device status or to request reports.
+
+Each device must be queried separately to gather status or generate a report..
+
+4.2 Communication Protocols
+    Three communication protocols are available:：
+
+    OEM communication protocol
+
+    Data Terminal (DT) protocol
+
+    CAN protocol
+
+    SY01B firmware automatically detects the communication protocol.
+
+    The DT protocol can be run via an ASCII data terminal because no sequence numbers or checksums are
+
+used. For instructions on using a Microsoft Windows Terminal Emulator, see “ Using DT Protocol with
+
+Microsoft Windows” in this chapter.
+
+    Note: SY01B Systems recommends using the OEM protocol for RS-232 and RS-485 interfaces. It
+
+provides increased error checking through the use of checksums and sequence numbers.
+
+    Once the SY01B detects either the OEM or DT protocol, it will ignore the other protocol until the next
+
+power cycle.
+
+    4.2.1 OEM Communication Protocol
+    OEM communication is a robust protocol that includes automatic recovery from transmission errors.
+
+            Parameter                                                   Setting
+                                                Character Format
+               Baud rate                                            9600 or 38400
+               Data bits                                                   8
+                Parity                                                   None
+               Stop bit                                                    1
+                                         Command Block
+                    (see “OEM Protocol Command Block Characters” for details）
+                  1                                    STX (^B or 02H)
+                  2                                                 Pump address
+                  3                                               Sequence number
+                 3+n                                             Data block (length n)
+                 4+n                                               ETX (^C or 03H)
+                 5+n                                                  Checksum
+                                               Answer Block
+                           (see “OEM Protocol Answer Block Characters” for details)
+                  1                                          STX (^B or 02H)
+
+                                                                                                        19
+www.runzeliuti.com
+                  2                                              Master address (0 or 30H)
+                  3                                                      Status code
+                 3+n                                                Data block (length n)
+                 4+n                                                   ETX (^C or 03H)
+                 5+n                                                      Checksum
+                                               Table 3-3 OEM Commands
+
+     OEM Protocol Command Block Characters
+
+     The command block characters in the OEM communication protocol are described below. All characters
+
+outside the command block are ignored.
+
+     When developing a parsing algorithm, the programmer should key on the STX as the beginning of the
+
+answer block and the checksum (character after the ETX) as the end of the answer block.
+
+     STX (^B or 02h)
+
+     The STX character indicates the beginning of a command
+
+     Pump Address
+
+     The pump address is a hexadecimal number specific for each pump
+
+     Sequence Number/Repeat Flag
+
+     The sequence number is a single byte that conveys both a sequence number (legal values: 0 to 7) and a
+
+bit-flag indicating that the command block is being repeated due to a communications breakdown. The
+
+sequence number is used as an identity stamp for each command block. Since it is only necessary that every
+
+message carry a different sequence number from the previous message (except when repeated), the
+
+sequence number may be toggled between two different values (e.g., “1” and “2”) as each command
+
+block is constructed. During normal communication exchanges, the sequence number is ignored. If, however,
+
+the repeat flag is set, the pump compares the sequence number with that of the previously received
+
+command block to determine if the command should be executed or merely acknowledged without
+
+executing.
+
+     Note: If the operator chooses not to use this option, the sequence number can be set to a fixed value of 1 (31h).
+
+     Data Block (length n)
+
+     The data block consists of the data or commands sent to the pump or host (this is an ASCII string).
+
+When the pump is responding to a move or [Q] command, the data block length is 0 (i.e., no data string
+
+exists).
+
+     ETX
+
+     The ETX character indicates the end of a command string.
+
+     Checksum
+
+     The checksum is the last byte of the message string. All bytes (excluding line synchronization and
+                                                                                                                   20
+www.runzeliuti.com
+checksums) are XORed to form an 8-bit checksum. This is appended as the last character of the block. The
+
+receiver compares the transmitted value to the computed value. If the two values match, an error free
+
+transmission is assumed; otherwise, a transmission error is assumed.
+
+    OEM Protocol Answer Block Characters
+
+    The answer block characters in the OEM communication protocol are described below.
+
+    Only the unique answer block entries are listed in this section. For common commands and answer
+
+block commands (characters), see the previous section,“OEM Protocol Command Block Characters.”
+
+    Master Address
+
+    The master address is the address of the host system. This should always be 30h (ASCII value “0”).
+
+    Status and Error Codes
+
+    The status and error codes define pump status and signal error conditions. For a description of status
+
+and error codes, see “Error Codes and Pump Status”.
+
+     4.2.2 Data Terminal (DT) Protocol
+    The DT protocol can be used easily from any terminal or terminal emulator capable of generating ASCII
+
+characters at 9600 baud, 8 bits, and no parity.
+
+                                              Character Format
+           Parameter                                                    Setting
+           Baud rate                                                 9600 or 38400
+           Data bits                                                      8
+             Parity                                                      None
+            Stop bit                                                      1
+                                           Command Block
+                       (see “DT Protocol Command Block Characters” for details)
+               1                               Start command (ASCII “/” or 2FH)
+               2                                                     Pump address
+              2+n                                             Data block (length n)
+              3+n                                        Carriage Return ([CR] or 0DH)
+                                            Answer Block
+                        (see “DT Protocol Answer Block Characters” for details)
+               1                                  Start answer (ASCII “/” or 2FH)
+               2                                     Master address (ASCII “0” or 30H)
+               3                                                 Status character
+              3+n                                             Data block (length n)
+              4+n                                                      ETX (03H)
+              5+n                                             Carriage return (0DH)
+              6+n                                                Line feed (0AH)
+                                             Table 3-4 DT Protocol
+
+    DT Protocol Command Block Characters
+
+                                                                                                    21
+www.runzeliuti.com
+    The command block characters in the DT communication protocol are described below:
+
+    Start Block
+
+    The start character indicates the beginning of a message block.
+
+    Pump Address
+
+    The pump address is an ASCII character specific to each pump.
+
+    Data Block (length n)
+
+    The data block consists of the ASCII data or commands sent to the pump or host.
+
+    End Block
+
+    The end character indicates the end of a message block.
+
+    DT Protocol Answer Block Characters
+
+    The answer block characters comprising the DT communication protocol are described below.
+
+    Only unique answer block entries are listed in this section. For information on command and answer
+
+block commands (characters), see the previous section,“OEM Protocol Command Block Characters.”
+
+    Master Address
+
+    The master address is the address of the host system. This should always be 30h (ASCII “0”).
+
+    Status Character
+
+    The status and error codes define pump status and signal error conditions. See the description of the [Q]
+
+command in “Error Codes and Pump Status.”
+
+    Data Block
+
+    This is the response from all Report commands with the exception of the [Q] command.
+
+    Carriage Return (0dh)/Line Feed (0AH to 0CH )
+
+    This character terminates the reply block
+
+    4.2.3 Using DT Protocol with Microsoft Windows
+    The SY01B can be controlled in DT protocol mode directly from the Microsoft Windows terminal accessory.
+
+    To communicate with the SY01B using Windows , follow these steps:
+
+    1 Connect the SY01B to a communications port of the PC.
+
+    2 From the Microsoft Program Manager window, start the SerialCommV1.0 application.
+
+    3 Select more serial port Settings.
+
+    4 Select a baud rate of 9600, 8 data bits, 1 stop bit, no parity, communications port connector (for
+
+example,COM1), and no flow control.
+
+    5 Click OK and click again to start the serial port
+
+    6 Set the pump address switch to 0.
+
+
+                                                                                                        22
+www.runzeliuti.com
+    7 Power on the pump.
+
+    8 Type /1ZR to initialize the pump.
+
+    9 To run the pump, see the commands listed in “Using the SY01B Command Set” in this chapter.
+
+    4.2.4 CAN Interface Communication
+    CAN Controller Area Network is a two-wire, serial communication bus. It eliminates polling sequence
+
+that verify task completion. Using CAN, the pump asynchronously report to the maste or host when they
+
+have finished the current task
+
+    Note: all HMD use CAN controller chips compatible with Philips semiconductor CAN rCAN bus
+
+specification, version 2.0. When using the CAN interface, termination resistors (120ohm )are necessary at
+
+both ends of the bus.The pump does not provide CAN termination resistors.
+    4.2.4.1 CAN Messages
+    CAN messages consist of frames. Each frame has an 11 – bit Message Identifier (MID) and a 4-bit length
+
+identifier. The bits: Indlicate to which device on the bus the message is directed
+
+    Identify the message type
+
+    Show the direction of the message (toor from the master device)
+
+    Represent the length of the data block. Data blocks can be from zero to eight bytes in length. Any
+
+message that requires more than eight bytes must be sent in a series of multi-frame messages. The receiving
+
+unit then assembles the separate frames into one long string.
+
+    4.2.4.2 CAN Message Construction
+     Each message frame begins with the Message ID (MID). The data block (up to 8 bytes in length) follows
+
+the MID and length information. The MID makes up three nibbles that are transmitted first in a message
+
+frame. The bits are grouped asshown in Figure 3-1, CAN Message Structure"
+
+
+
+
+                                   Figure 3-1 CAN Message Structure
+
+    Direction
+
+                                                                                                     23
+www.runzeliuti.com
+    This is the direction bit. It lets the devices on the bus know whether the current message is to or from
+
+the master. "O" means that the message is from master to slave; "|" means the message is from the slave to
+
+the master.
+
+    Note: Peer-to-peer messaging is not supported.
+
+    Group
+
+    This is the group number (0 - 7). Each type device on the CAN bus has a group assignment. HMD is
+
+assigned to group 2. The group number "1" is reserved for the boot request procedure.
+
+    Device
+
+    This is the address of the module in the particular group. Each group can have up to 16 devices. The
+
+address value is 0 - 15.
+
+    Frame
+
+    This lets the device know what type of message is coming. See "CAN Frame Types" in this chapter.
+
+    RTR
+
+    This bit is not used in HMD CAN implementation and should always be set to 0.
+
+    IDE
+
+    This will always be set to O for standard format frames.
+
+    r0
+
+    Reserved bit. set to 0.
+
+    Length
+
+    This is the length of the data block in the message. Data blocks can be from zero to eight bytes in
+
+length.
+
+    CAN Frame Types
+
+    The frame types allow each device to know what type of command is coming in and enables faster
+
+processing of commands. Pumps respond to the frame types described below:
+
+    Action Frames, Type 1
+
+    This frame type is used for action commands, such as Initialization commands, Movement commands,
+
+Valve commands, or to set pump operating parameters. All "task-type" commands are sent in this type
+
+message frame. When multi-frame messages are used to send an action command, this frame is the end
+
+message sent to the pump.
+
+    Common Commands, Type 2
+
+    This frame type is used for commands that are common to every device on the bus. The frame type is set to
+
+2 and the command is a single ASCII character in the data block. The sinqle ASCII character is described below.
+
+
+                                                                                                          24
+www.runzeliuti.com
+ Command          Command
+ 0                Reset mode. This resets the pump and beqins the boot request procedure.
+ 1                Start loaded command. Just like sending an [R] command after a string has been loaded.
+ 2                Clear loaded command. This clears out the command buffer.
+ 3                Repeat last command. This command does the same thing as the (X] command,
+ 4                Stop action immediately. This acts like a [T] command.
+
+      Multi-Frame Start Message, Type 3
+
+      This frame type lets the pump know that the next message will be longer than the 8-byte maximum for
+
+each frame. Subsequent frames will follow to complete the message.
+
+      Multi-Frame Data, Type 4
+
+      This frame type is used to identify a frame in the middle of a multi-frame message. The last frame of a
+
+multi-frame message for action commands must be type 1. The last frame of a multi-frame message
+
+response from the pump for report commands will be type 6.
+
+      Note: There is no type 5 frame.
+
+      Report/Answer Commands, Type 6
+
+      This frame type is used to get information back from the pump. It is similar in operation to the query
+
+commands (i.e., (?]) used in the OEM and DT protocols. The report command is one byte long and consists of
+
+one or more ASCII characters in the data block. Report commands in ASCII format are:
+
+ Command               Command
+ 0                     Report absolute plunger position
+ 1                     Report start speed
+ 2                     Report top speed
+ 3                     Report cutoff speed
+ 6                     Report current valve position
+ 10                    Report buffer status
+ 12                    Report pump backlash increment
+ 13                    Report status of input #1
+ 14                    Report status of input #2
+ 15                    Report the number of pump initializations
+ 16                    Report the number of plunger movements
+ 17                    Report the number of valve movements
+ 18                    Report the number of valve movements since last report
+ 23                    Report current software version
+ 24                    Report the number of reset offset steps
+ 29                    Report device status
+ 76                    Report pump configuration
+ 200                   Verify conf file
+ 201                   Query log
+ 202                   Query the serial number
+                                                                                                       25
+www.runzeliuti.com
+ 203                   Query encoder values
+ 300-314               Query program strings in s0-s14
+ *                     Query voltage
+ <                     Report user data
+
+     When the pump responds to a query, the first two bytes of the data block are the status bytes. The first
+
+byte contains an error code (same error codes used with he RS-232 and RS-485 protocols) added to Ox20h.
+
+The second byte contains the value Ox60h and is not used. The remaining six bytes are for the response in
+
+ASCII. If the pump is only reporting Current status, the message is only two bytes long. If the reply consists of
+
+more than six bytes, multi-frame messages are used.
+
+     CAN Data Block
+
+     The data block tells the pump what to do. Pump commands are sent in ASCII just like in RS-232 or
+
+RS-485. For command strings that are more than eight bytes in length, multi-frame messages are used. This
+
+permits long program strings to be sent as with the other communications interfaces (remember that the
+
+SY-01C buffer size is 255 characters).
+
+     Handling of Pump Boot Requests
+
+     When the pump is first powered up or receives a system reset command (frametype 2, command 0), the
+
+pump notifies the host of this condition by sending a boot request message at 100 millisecond intervals until
+
+it receives a proper response. The group number is 1 for the boot request message. The frame type is 2
+
+when the pump sends messages to the host, and the frame type must be 0 when the host replies to the boot
+
+request.
+
+     Example 1. The pump is set to address 0
+
+     Pump sends:
+
+ Direction           Group                 Device          Frame               RTR             Length
+ 1                   001                   0000            010                 0               0000
+
+     Host acknowledges；
+
+ Direction      Group           Device         Frame       RTR        Length       Node ID     Slave ID
+ 0             001              0000           000         0          0010         0010 0000   001 00000
+
+     Host acknowledges the boot request with:
+
+ Direction       0         Host to slave
+ Group           1         Boot request response group
+ Device          0         Always 0 in boot response
+ Frame           0         Boot request response frame
+ RTR             0         Always 0
+ Length          2         Two data bytes in return message
+ Node ID                   Node ID (2) +Pump Address (6)       00h must respond with Group & Address
+                                                                                                           26
+www.runzeliuti.com
+ Slave ID                  Same as Node ID 20 in hex 00h
+
+     Example 2. The pump is set to address 6
+
+     Pump sends:
+
+ Direction           Group                 Device            Frame            RTR               Length
+ 1                   001                   0110              010              0                 0000
+
+     Host acknowledges:
+
+ Direction     Group          Device       Frame         RTR           Length       Node ID      Slave ID
+ 0            001             0000         000           0             0010         0010 0110    0010 0110
+
+     Host acknowledges the boot request with:
+
+ Direction       0         Host to slave
+ Group           1         Boot request response group
+ Device          0         Always 0 in boot response
+ Frame           0         Boot request response frame
+ RTR             0         Always 0
+ Length          2         Two data bytes in return message
+ Node ID                   Node ID (2) +Pump Address (6) “&” 26 in hex
+ Slave ID                  Slave ID same as Node ID 26 in hex
+
+     The pump will save the Node ID to use for message filter Group ID.
+
+     Note: The slave ID does not have to be the same as the node ID. The pump can be assigned any number
+
+between 0 and Ox7F (127) for the slave ID.
+
+     CAN Host and Pump Exchanges
+
+     When a slave pump receives a command, finishes a command, encounters an
+
+     error condition, or responds to a query, it sends an answer frame to the host using
+
+     the same frame type as the command it belongs to. The answer frame format is
+
+     device dependent. Generally, it will have the following format:
+
+     <MID><DLC><Answer>
+
+     <MID>
+
+     11-bit message identifier. The direction bit is 1. The group number and the frame type are the same as
+
+received. Device ID is the slave message ID assigned by the host.
+
+     <DLC>
+
+     4-bit data length code
+
+     <Answer>
+
+     Data bytes block. The first byte of the data block is always the status byte, which is an error code (same
+
+error codes used with the RS232 and RS485 protocols) added to Ox20h. The second byte is always Ox60h.
+
+                                                                                                            27
+www.runzeliuti.com
+The remaining bytes contain the response in ASCII format. If the reply consists of more than six bytes, the
+
+multi-frame messages are used.
+
+     Note: Only one command of a given frame type can be in progress at any one time; e.g., after issuing a
+
+command to a slave pump with frame type = 1, the master must wait for the answer with frame type = 1
+
+before issuing the next command with frame type = 1. If the user insists on sending the command, a
+
+command overload status results. Several commands with different frame types can be in progress at the
+
+same time; e.g., an action command and a query command. Following are typical exchanges between the
+
+host and slave for action commands, multi-frame commands, common commands, and query commands.
+
+     Action Command
+
+     The host commands (ZR] to a pump, and the pump is set to address 0
+
+     Host sends:
+
+ 0                 XXXXXXX            001                 0                0010           ZR
+ Direction         Slave ID           Frame Type          RTR              DLC            Data bytes
+
+     Pump acknowledges:
+
+ 0                 XXXXXXX           001               0                 0010
+ Direction         Slave ID          Frame Type        RTR               DLC
+
+After executing the command, pump reports status:
+
+ 0                 XXXXXXX            001                 0                0010         <20h><60h>
+ Direction         Slave ID           Frame Type          RTR              DLC          Data bytes
+
+     Note: The mixed formats ASCII and hexadecimal are used in the data bytes block. The hexadecimal
+
+number is bracketed (<>). The rest of the fields are displayed in binary format.
+
+     Multi-Frame Command
+
+     The host commands [Z2S5glA30000gHD300G10G5R] to a pump, and the pump is set to address 0.
+
+     Host sends:
+
+ 0                 XXXXXXX            011                 0                1000           Z2S5gIA3
+ Direction         Slave ID           Frame Type          RTR              DLC            Data bytes
+ 0                 XXXXXXX            100                 0                1000           000OgHD3
+ Direction         Slave ID           Frame Type          RTR              DLC            Data bytes
+ 0                 XXXXXXX            001                 0                1000           00G10G5R
+ Direction         Slave ID           Frame Type          RTR              DLC            Data bytes
+
+     Pump acknowledges:
+
+ 1                 XXXXXXX          001               0                0000
+ Direction         Slave ID         Frame Type        RTR              DLC
+
+     After executing the command, pump reports status:
+                                                                                                       28
+www.runzeliuti.com
+ 1                 XXXXXXX            001              0                  0010          <20h><60h>
+ Direction         Slave ID           Frame Type       RTR                DLC           Data bytes
+
+     Note: For multi-frame commands, the pump only acknowledges the last frame.
+
+     Common Command
+
+     After the host has sent command [A1000A0] to the pump, it sends command 1 of frame type 2 to a
+
+pump and makes the pump move. The pump is set to address 0.
+
+     Host sends:
+
+ 0              010            0000            010               0              0001          1
+ Direction      Slave ID       Frame Type      RTR               DLC            Data bytes    Direction
+
+     Pump acknowledges:
+
+ 1               XXXXXXX        002            0                 0000
+ Direction       Slave ID       Frame Type     RTR               DLC
+
+     After executing the command, pump reports status:
+
+ 1                 XXXXXXX            002              0                  0010         <20h><60h>
+ Direction         Slave ID           Frame Type       RTR                DLC          Data bytes
+
+     Query Command
+
+     The host commands 29 of frame type 6 to a pump, and the pump is set to address 1
+
+     Host sends:
+
+ 0                 XXXXXXX            110                  0                   0010               29
+ Direction         Slave ID           Frame Type           RTR                 DLC                Data bytes
+
+     Pump acknowledges:
+ 1                 XXXXXXX            110                  0                   0010           <20h><60h>
+ Direction         Slave ID           Frame Type           RTR                 DLC
+
+     Note: For query commands, no acknowledge frame is needed
+
+     Report Command
+
+     The host commands 23 of frame type 6 to a pump, and the pump is set to address 1
+
+ 0                 XXXXXXX            110                  0                   0010               23
+ Direction         Slave ID           Frame Type           RTR                 DLC                Data bytes
+
+     Pump reports：
+
+ 1                 XXXXXXX            011                  0            1000           <20h><60h><727920>
+ Direction         Slave ID           Frame Type           RTR          DLC
+ 1                 XXXXXXX            110                  0            0110           <20h>Rev<20h>A
+ Direction         Slave ID           Frame Type           RTR          DLC            Data bytes
+
+     Note: For multi-frame replies, the starting frame is type 3, the middle frame is type 4 and the last frame
+                                                                                                               29
+www.runzeliuti.com
+is type 6.
+
+     Note: In this example, the returned data has been actualised.
+
+4.3 Using the SY01B Command Set
+
+     4.3.1 Command Execution Guidelines
+     To use the commands properly, keep the following in mind:
+
+            All commands, except Report commands and most Control commands, must be followed by an [R]
+
+(Execute) comman
+
+            Single or multiple command strings can be sent to the pump.
+
+     For example:
+
+     – A single command such as [A6000R] moves the plunger to position 6000.
+
+     – A multi-command string such as [IA6000OA0R] moves the valve to the input position, moves the
+
+plunger to position 6000, turns the valve to the output position, and finally returns the plunger to position 0.
+
+            The pump’s command buffer holds a maximum of 255 characters. If a command is sent without
+
+the [R] (Execution) command, it is placed into the buffer without being executed. If a second command is
+
+sent before the first command is executed, the second command overwrites the first command (i.e., the first
+
+command string is erased).
+
+            Once a command is executed, new commands are not accepted until the sequence is completed.
+
+Exceptions to this rule include interruptible (see “ T Terminate Command ” in this chapter) and Report
+
+commands.
+
+            When a command is sent, the pump answers immediately. If an invalid command has been sent in
+
+a command string, or there was an invalid parameter in the command, the pump reports an error
+
+immediately. In the case of a [Q] (Query) command, the error is read back to the host computer.
+
+            Always run liquid through the syringe and valve when issuing a Move command. Failure to do so
+
+may damage the valve and syringe seal.
+
+            Keep fingers out of the syringe slot while the pump is running. Failure to do so can result in injury.
+
+     4.3.2 Pump Configuration Commands
+     SY01B pumps are preconfigured at the factory to the default settings. The firmware, however, allows the
+
+user to configure the pump to meet his or her specific requirements. Configuration options available to the
+
+user include resolution, backlash, valve type, and baud rate.
+
+     N <n> Set Microstep Mode Off/On
+
+     The [N] command enables or disables microstepping (fine positioning).
+
+
+                                                                                                              30
+www.runzeliuti.com
+    The syntax for this command is:
+    [N<n>]
+    where <n> = 0 or 1 (0 is the default)
+
+ Value of <n>                                               Description
+                     Normal mode: All positions set and reported in half-steps; all speedsettings in
+       0
+                     half-steps/sec and all slopes in half-steps/sec 2.
+                     Fine positioning mode: All positions set and reported in micro-steps; all speed settings in
+                     half-steps/sec and all slopes in half-steps/sec 2 .
+       1
+                     Maximum cutoff frequency limited to 750 half-steps/sec; maximum on- the-fly set
+                     velocity limited to 750 half-steps/sec.。
+                     Micro-step mode: All positions set and reported in micro-steps; all speed settings in
+       2
+                     micro-steps/sec and all slopes in micro-steps/sec 2 .
+    K<n> Backlash Increments
+
+    The [K] command sets the number of backlash increments.
+
+    The syntax for this command is
+
+    [K<n>]
+
+    where <n> = 0---800 in full step mode
+
+    and <n> = 0---1600 in fine positioning mode
+
+    When the syringe drive motor reverses direction, the carriage will not move until the backlash due to
+
+mechanical play within the system is compensated. To provide this compensation, during aspirating, the
+
+plunger moves down additional increments, then backs up the set number of backlash increments.
+
+    This ensures that the plunger is in the correct position to begin a dispense move.
+
+    > Set User Data Command
+
+    The [>] command loads a byte of user data into non-volatile memory:
+
+    [> <n1>, <n2>], where: <n1> is 0..15 (location in non-volatile memory) and
+
+    <n2> is 0..255 (data to load into non-volatile memory).
+
+    U<n>      Write Pump Configuration to Non-Volatile Memory
+
+    The [U] command is used to write configuration information to the non-volatile memory. The pumps
+
+are configured during the manufacturing process but can be reconfigured at any time with the following [U]
+
+commands
+
+             Value<n>                                                 Description
+                30                                      Set Non-Volatile Memory Auto Mode
+                31                                     Clear Non-Volatile Memory Auto Mode
+                41                                      Set RS-232/RS-485 Baud rate to 9600
+                47                                      Set RS-232/RS-485 Baud rate to 38400
+
+                                                                                                             31
+www.runzeliuti.com
+                U200                                Set the stall current of the syringe pump (1-31)
+                                Figure 3-5 Write Pump Configuration Command Values
+
+    Note: [U] commands take effect upon the pump's next power-up.
+
+4.4 Initialization
+    4.4.1 Initialization Forces
+    Initialization moves the plunger to the top of travel, then backs off a user-specified number of
+
+increments (see k command) and sets this as position 0. Also, the input and output positions of the valve are
+
+assigned depending on the initialization command. All other command parameters are reset to default
+
+values.
+
+    The top of the syringe is recognized when upward movement of the plunger causes an overload
+
+condition.
+
+    The force at which the plunger presses against the top of the syringe can be controlled via a parameter
+
+after the Initialization command (possible values are 0, 1 and 2).
+
+    Table 3-6 lists the recommended initialization force for each type of syringe.
+
+          Caution! To retain the integrity of the seal on smaller syringes, use a lower initialization force than
+
+          that for larger syringes. The default initialization speed is 500 Hz.
+
+                        Syringes                                                     Force
+                    1.0 mL and larger                                                    Full
+                       250，500μl                                                         Half
+                       50，100μl                                                      Third
+                               Figure 3-6 Recommended Initialization Forces by Syringe
+
+    k <n> Syringe Dead Volume Command / Offset Steps after Reset
+
+    The [k] command sets the number of increments that the plunger drive is offset from the top of travel.
+
+This is to minimize dead volume.
+
+    The syntax for this command is:
+
+      [k<n>]
+
+    where:
+
+    n = the offset in increments from top of travel
+
+    n=       0…800 in full step mode
+
+    n = 0…6400 in fine positioning and microstep modes
+
+    Under default initializations, the plunger moves upward until it contacts the top of the syringe, causing a
+
+forced stall initialization. The plunger then moves downward and upward, leaving a small gap between the
+
+syringe seal and the top of the plunger. This small gap was designed so that the Teflon seal does not hit the
+
+                                                                                                            32
+www.runzeliuti.com
+top of the plunger each time the syringe moves to the “home ” position. This maximizes the life of the
+
+syringe seal.
+
+    The [k] command must be followed by the Initialization command [Z], [Y], or[W]. Each time the unit is
+
+powered down, the “k” value will return to the default condition.
+
+    For example, to offset 10 increments away from the top of travel, send the following commands:
+
+    – k10R
+
+    – ZR
+
+     4.4.2 Initialization Commands
+    Z <n1, n2, n3>     Initialize Plunger and Valve Drive (CW Polarity)
+
+    The [Z] command initializes the plunger drive and homes the valve in a clockwise direction. Valve ports
+
+are numbered 1..X, starting in a clockwise direction at the first port after the syringe port. The default
+
+initialization speed is 500 pulses per second.(In the SY01B system, the process of suction is initialized in input
+
+port, and the dispensing is initialized in output port   )
+
+    n 1 = Set initialization plunger force/speed
+
+    n 2 = Set initialization input port
+
+    n 3 = Set initialization output port
+
+    The parameters are described below:
+
+ Z Parameter        Value                                          Description
+                      0        Initializes at full plunger force and at default initialization speed (default)
+                      1        Initializes at half plunger force and at default initialization speed
+     <n1>             2        nitializes at one-third plunger force and at default initialization speed
+                               Initializes at full force and at speed code <n 1 >. See command <S> for a list
+                    10…40
+                               of speed codes.
+                      0        Sets initialization input port to port 1 (default)
+     <n2>                      Sets initialization input port for distribution valves, where X is the number of
+                     1…X
+                               ports on the valve.
+                               Sets initialization output port to port X (default), where X is the number of
+                      0
+                               ports on the valve.
+     <n3>
+                               Sets initialization output port for distribution valves, where X is the number of
+                     1…X
+                               ports on the valve.
+
+    Y＜n1、n2、n3 > Initialize Plunger and Valve Drive (CCW Polarity)
+
+    The [Y] command initializes the plunger drive and homes the valve in a counter-clockwise direction.
+
+Valve ports are numbered 1..X in a counter-clockwise direction starting with the first port after the syringe
+
+port. The default initialization speed is 500 pulses per second.
+
+
+                                                                                                                 33
+www.runzeliuti.com
+     n 1 = Set initialization plunger force/speed
+
+     n 2 = Set initialization input port
+
+     n 3 = Set initialization output port
+
+     The parameters are described below.
+
+ Y Parameter          Value                                           Description
+                        0         Initializes at full plunger force and at default initialization speed (default)
+                        1         Initializes at half plunger force and at default initialization speed
+     <n1>               2         Initializes at one-third plunger force and at default initialization speed
+                                  Initializes at full force and at speed code <n 1 >. See command <S> for a list
+                      10…40
+                                  of speed codes.
+                        0         Sets initialization input port to port 1 (default)
+     <n2>                         Sets initialization input port for distribution valves, where X is the number of
+                      1…X
+                                  ports on the valve.
+                                  Sets initialization output port to port X (default), where X is the number of
+                        0
+                                  ports on the valve.
+     <n3>
+                                  Sets initialization output port for distribution valves, where X is the number of
+                      1…X
+                                  ports on the valve.
+     W <n1>      Initialize Plunger Drive
+
+     The [W] command initializes the plunger drive only (commonly used for valveless pumps). Because the
+
+valve is not initialized, only plunger force and/or speed can be set.The default initialization speed is 4000
+
+pulses per second.
+
+     n 1 = Set initialization plunger force/speed
+
+     The parameters are described below.
+
+W Parameter           Value                                            Description
+                        0         Initializes at full plunger force and at default initialization speed (default)
+                        1         Initializes at half plunger force and at default initialization speed
+     <n1>               2         Initializes at one-third plunger force and at default initialization speed.
+                                  Initializes at full force and at speed code <n 1 >. See command <S> for a list of
+                      10…40
+                                  speed codes.
+     w<n1, n2>       Initialize Valve Drive
+
+     The [w] command initializes the valve drive only. Because the plunger is not initialized, only the
+
+initialization port can be set.
+
+     n 1 = Set port
+
+     n 2 = Set valve homing and port numbering direction
+
+     The parameters are described below.
+
+ w Parameter          value                                            Description
+    <n1>               1…X        Set initialization port, where X is the number of ports on the valve
+                                                                                                                    34
+www.runzeliuti.com
+                             Valve homes in a clockwise direction; valve ports numbered in a clockwise
+                      0
+                             direction.
+     <n2>
+                             Valve homes in a counterclockwise direction; valve
+                      1
+                             ports numbered in a counterclockwise direction.
+    z   Simulated Plunger Initialization
+
+    The [z] command simulates an initialization of the plunger drive, however, no mechanical initialization
+
+occurs. The current position of the plunger is set as the zero (home) position.
+
+    This command can be used after a plunger overload error, to regain control of the pump. After
+
+recovering from the overload condition using the [z] command, the pump must be reinitialized using the
+
+Z<n 1 , n 2 , n 3 > or Y<n 1 , n 2 ,n 3 > commands to set the true home position.
+
+    Caution! Incorrect use of this command can damage the device.
+
+4.5 Operating Commands
+
+    4.5.1 Valve Commands
+    Valve commands position the input and output channels to the specified ports. Similar valve commands
+
+cause different actions depending on whether you are using non-distribution valves or distribution valves.
+
+    With non-distribution valves, any combination of two valve ports, including or excluding the syringe
+
+port, may be used. With distribution valves, the syringe port is a common port, always included as one of the
+
+two valve ports in use.
+
+    The initialization command (Z, Y, or w) determines:
+
+    the direction in which the valve homes during initialization (clockwise or counterclockwise)
+
+    the direction in which the ports are numbered, starting with the syringe port (clockwise or
+
+counterclockwise)
+
+    After initialization, the direction in which the valve moves is specific to the valve type and command.
+
+    With non-distribution valves, the I, O, B, or E command specifies the combination of valve ports to be
+
+connected. The valve moves following the shortest path available.
+
+    For example, in Figure 3-2, if the 3-port non-distribution valve has been initialized with the [Z]
+
+command, the ports will be numbered as shown in the top diagram (clockwise). Issuing an [O] command
+
+aligns the syringe port with port 2, as shown.
+
+                     Figure 3-2   Valve Position Examples for 3-Port Non-Distribution Valves
+
+                                                  3-Port Valve
+                                    Z Initialization Command Examples
+                            Port sequence is clockwise from Syringe port（C）
+
+
+
+                                                                                                         35
+www.runzeliuti.com
+                      I Valve Command            0 Valve Command        B Valve Command
+                      Input to port 1            Output to port 2    Bypass to Input & Output
+     With distribution valves, the direction in which the valve moves is determined by the valve command. It
+
+will not necessarily follow the shortest path.
+
+         The [I] command moves the valve in a clockwise direction.
+         The [O] command moves the valve in a counterclockwise direction.
+     Note: Use of [I] and [O] in distribution valves is by convention, and does not pertain to input or output
+characteristics
+     Because the syringe port is always a common port, in distribution valves, the [B] (Bypass) and [E] (Extra)
+commands are meaningless. However, the commands are available, to provide backward compatibility with
+earlier versions of firmware.
+     For example, in Figure 3-3, if the 3-port distribution valve has been initialized with the [Y] command, the
+ports will be numbered as shown in the bottom diagram (counterclockwise). Issuing an [O<3>] command
+will align the syringe port with port 3, as shown.
+
+                         Figure3-3 Valve Position Examples for 3-Port Distribution Valves
+
+                                             3-Port Distribution Valve
+                                       Z Initialization Command Examples
+                                Port sequence is clockwise from Syringe port (C)
+
+
+
+
+                   Set I<1> Command          Set O<3> Command           Extra<E>postion Command
+                   Input（I）on port 1        Output（O）on port 3          Connect port C and 2
+
+                                           3-Port Distribution Valve
+                                     Y Initialization Command Examples
+                           Port sequence is counter-clockwise from Syringe port (C)
+
+
+
+
+                                                                                                          36
+www.runzeliuti.com
+                       Set I<1> Command           Set O<3> Command          Extra<E>postion Command
+                       Input（I）on port 1         Output（O）on port 3         Connect port C and 2
+
+    Following are more detailed descriptions of the various valve commands and what they do.
+
+    I   Move Valve to Input Position (Non-distribution Valves)
+
+    The [I] command moves the valve to the input port set by the initialization command, following the
+
+shortest path.
+
+    I < n> Move Valve Clockwise to Port n (Distribution Valves）
+
+    The [I<n>] command sets the valve position to port [n], moving in a clockwise direction. This command
+
+is independent of input or output characteristics.
+
+    O    Move Valve to Output Position (Non-distribution Valves)
+
+    The [O] command moves the valve to the output port set by the initialization command, following the
+
+shortest path.
+
+    O <n>        Move Valve Counterclockwise to Port n (Distribution Valves)
+
+    The [O<n>] command sets the valve position to port [n], moving in a counter-clockwise direction. This
+
+command is independent of input or output characteristics.
+
+    B   Move Valve to Bypass (Non-distribution Valves)
+
+    The [B] command connects the input and output positions, bypassing the syringe. The valve moves
+
+following the shortest path.
+
+    E Move Valve to Extra Position (4-Port Non-distribution Valve)
+
+    The [E] command connects the extra position in the 4-port valve, bypassing the syringe. The valve
+
+moves following the shortest path.
+
+    Note: The [B] and [E] commands are useful when flushing fluid lines. If a Valve command is issued to a
+
+valveless pump, the command is ignored.
+
+    Caution! When the valve is in the Bypass position, the syringe plunger will not move. Sending a Plunger
+
+Movement command causes an error 11 (plunger move not allowed)
+                       Figure3-4     Valve Position Examples for 4-Port Non-Distribution Valves
+
+                                                       4 Port-Valve
+                                         Z Initialization Command Examples
+                                   Port squence is clockwise from Syringe(C) Port
+
+                                                                                                      37
+www.runzeliuti.com
+        Sets I command         Sets 0 command             Bypass(B)command           Extral(E)position command
+       Input（I）on port 1      Output (0) on port 3       Connects ports 1 & 2          Connects ports 2 & 3
+
+                                                4 Port-Valve
+                                  Y Initialization Command Examples
+                         Port squence is counter-clockwise from Syringe(C) Port
+
+
+
+
+        Sets I command       Sets 0 command              Bypass(B)command Extral(E)position command
+      Input（I）on port 1     Output (0) on port 3        connects ports 1 & 2 connects ports 2 & 3
+
+                         Figure 3-5 Valve Position Examples for T Valves (Distribution)
+
+                                                     T-Valve
+                                        Z Initialization Command Examples
+                                Port sequence is clockwise from Syringe (C) port
+
+
+
+
+          Sets I command           Bypass(B)command             Extral(E)command             Sets 0 command
+         Input(I)on port1&2       connects port1               connects port1&2             Output(0)on port 2
+
+                                                   T-Valve
+                                           Y Initialization Command Examples
+                         Port sequence is counter-clockwise from Syringe (C) port
+
+
+
+
+        Sets I command         Bypass(B)command            Extral(E)command               Sets 0 command
+                                                                                                            38
+www.runzeliuti.com
+           Input(I)on port 2        connects port1&2           connects port1         Output(0)on port 1&2
+
+               Note: For M02 T-type valve head, it is forbidden to use the piston movement command ([A],
+         [a], [P], [p], [D], [d]) to move the pistion when the valve head is switched to I3!!!(Pay attention)
+                                Figure3-6 Valve Position Examples for 6-Port Distribution Valves
+
+                                            6-Port Distribution Valves
+                                       Z Initialization Command Examples
+                                Port sequence is clockwise from Syringe (C) port
+
+
+
+
+        I<1>Command                  I<5>Command             O<6>Command             O<4>Command
+      Input on port 1(default)       Input on port 5       Output on port 6(default)  Output on port 4
+
+                                            6-Port Distribution Valves
+                                       Y Initialization Command Examples
+                               Port sequence is counter-clockwise from Syringe(C)
+
+
+
+
+      I<1>Command                   I<6>Command              O<6>Command                      O<3>Command
+    Input on port1(default)          Input on port 6       Output on port 6 (default)         Output on port 3
+
+                       Figure3-7     Valve Position Examples for 9-Port Distribution Valves
+
+                                            9-Port Distribution Valves
+                                       Z Initialization Command Examples
+                                Port sequence is clockwise from Syringe (C) port
+
+
+
+
+       I<1>Command                    I<4>Command               O<1>Command                     O<7>Command
+    Input on port 1(default)          Input on port 4        Output on port1(default)            Output on port 7
+
+                                            9-Port Distribution Valves
+                                       Y Initialization Command Examples
+                               Port sequence is counter-clockwise from Syringe(C)
+
+
+
+
+                                                                                                                 39
+www.runzeliuti.com
+          I<1>Command                I<3>Command              O<1>Command                O<8>Command
+    Input on port 1(default)         Input on port 3      Output on port1(default)       Output on port8
+
+
+    4.5.2 Plunger Movement Commands
+    A <n>     Absolute Position
+
+    The [A] command moves the plunger to the absolute position <n>, where<n> = 0..12000 in
+
+standard mode and 0..96000 in fine positioning and microstep mode.
+
+    Command             <n> Parameter Value                               Description
+                             0-12000                       Absolute position in half increments (N=0)
+         A                   0-96000                         Absolute position in microsteps (N=1)
+                             0-96000                         Absolute position in microsteps (N=2)
+    For example:
+
+    – [A300] moves the syringe plunger to position 300.
+
+    – [A12000] moves the syringe plunger to position 12000.
+
+    a <n>     Absolute Position (Not Busy)
+
+    This is the same as the [A] command, except that the status bit within the reply string indicates that the
+
+pump is not busy.
+
+    P <n>     Relative Pickup
+
+    The [P] command moves the plunger down the number of increments commanded. The new absolute
+
+position is the previous position plus <n>, where
+
+    <n> = 0..12000 in standard mode and
+
+    <n> = 0..96000 in fine positioning and microstep mode.
+
+     Command            <n> Parameter Value                                Description
+                             0-12000                       Relative position in half increments (N=0)
+          P                  0-96000                         Relative position in microsteps (N=1)
+                             0-96000                         Relative position in microsteps (N=2)
+    For example:
+
+    The syringe plunger is at position 0. [P300] moves the plunger down 300 increments. [P600] moves the
+
+plunger down an additional 600 increments to an absolute position of 900.
+
+    The [P] command will return error 3 (invalid operand) if the final plunger position is greater than 12000.
+
+    p <n> Relative Pickup (Not Busy)
+
+    This is the same as the [P] command, except that the status bit of the reply string indicates that the
+
+pump is not busy..
+
+    D <n> / d <n> Relative Dispense
+
+    The [D] command moves the plunger upward the number of increments commanded. The new absolute
+
+                                                                                                         40
+www.runzeliuti.com
+position is the previous position minus <n>,where
+
+     <n> = 0..12000 in standard mode and
+
+     <n> = 0..96000 in fine positioning and microstep mode.
+
+     Command             <n> Parameter Value                                Description
+                              0-12000                       Relative position in half increments (N=0)
+          D                   0-96000                         Relative position in microsteps (N=1)
+                              0-96000                         Relative position in microsteps (N=2)
+     For example:
+
+     The syringe plunger is at position 3000. [D300] will move the plunger up 300 increments to an absolute
+
+position of 2700.
+
+     The [D] command will return error 3 (invalid operand) if the final plunger position would be less than 0.
+
+     d <n>    Relative Dispense (Not Busy)
+
+     This is the same as the [D] command, except that the status bit of the reply string indicates that the
+
+pump is not busy.
+
+    4.5.3 Set Commands (Speed and Acceleration)
+     Set commands are used to control the speed of the plunger. Plunger movement is divided into three
+
+phases:
+
+   Ramping Up. Plunger movement begins with the start speed and accelerates with the programmed
+
+slope to the constant or top speed.
+
+   Constant or Top Speed. The plunger moves at the constant or top speed. Plunger speed can be
+
+programmed in Hz (half-increments/second) or in preprogrammed Set Speeds. The actual time the plunger
+
+travels is dependent on the ramping up and down. If the plunger move is short, it may never reach top
+
+speed.
+
+   Ramping Down. The plunger will decelerate based on the programmed slope. To enhance fluid
+
+breakoff, the Cutoff command ([c]) can be used to define the end speed of the plunger just before it stops.
+
+     Note: The Cutoff command is only active in a dispense move. During aspiration the move will end at the
+
+start speed [v].
+
+     For each plunger move, the firmware calculates how many increments the plunger must travel during
+
+each phase in order to move the total number of increments commanded. If the plunger is moving at a rate
+
+less than 900 Hz, the pump automatically microsteps to reduce the pulsation.
+
+     The top speed can be changed on the fly (while the plunger is moving) using the [v] command,
+
+providing the top speed is less than or equal to the start speed. Ramps are not included in on-the-fly speed
+
+changes; therefore, large speed changes (100 Hz to 1000 Hz) are not recommended.
+
+
+                                                                                                          41
+www.runzeliuti.com
+    Note: Unless the top speed is less than or equal to the start or cutoff speed, always program the pump
+
+in order of the move: start speed [v], top speed [V],cutoff speed [c].
+
+    Changing Speed on the Fly
+
+    Speed changes can be made while the syringe plunger is moving. This is called“changing speed on the
+
+fly.”
+
+    Speeds can be decreased or increased between 1 and 12000Hz (i.e., in the fine positioning region)
+
+    To change speed on the fly:
+
+  1. Issue speed commands with identical start and top speeds (e.g., [v100V100]), followed by a Plunger
+
+Move command. Ramping is not allowed in on-the-fly changes.
+
+  2. Issue a new top speed in the range 5 to 750 (e.g. [V600]) while the plunger is moving, to change the
+
+speed on the fly.
+
+    Note: When the move completes, speed values revert to original values (i.e.,value sent on-the-fly is
+temporary).
+    L <n>     Set Slope
+
+    During the beginning and end of a move, the plunger speed ramps up and down respectively. The ramp
+
+is programmed using the Slope command. It is calculated as <n> x 2.5 pulses/sec 2 . The syntax for this
+
+command is:
+
+    [L<n>]
+
+    where <n> = 1..20 (14 is the default)
+
+    In normal or fine positioning modes (N0, N1) pulses are in half steps. In micro-step mode (N2) pulses
+
+are in micro-steps.
+
+    The corresponding slopes in pulses/sec 2 are listed below.
+
+                      Slope Code                                         Pulses/sec 2 (KHz)
+                           1                                                     2500
+                           2                                                     5000
+                           3                                                     7500
+                           4                                                    10000
+                           5                                                    12500
+                           6                                                    15000
+                           7                                                    17500
+                           8                                                    20000
+                           9                                                    22500
+                          10                                                    25000
+                          11                                                    27500
+                          12                                                    30000
+                          13                                                    32500
+                          14                                                    35000
+
+                                                                                                        42
+www.runzeliuti.com
+                              15                                                    37500
+                              16                                                    40000
+                              17                                                    42500
+                              18                                                    45000
+                              19                                                    47500
+                              20                                                    50000
+    v <n> Set Start Speed
+
+    The [v] command sets the speed at which the plunger begins its movement, in pulses/sec. The plunger
+
+will then ramp up (slope) to the top speed. The start speed should always be less than the top speed
+
+  Command            <n> Parameter Value          Default Value                      Description
+         v                   1-1000                    900                  Set start speed in pulses/sec.
+
+    V <n>         Set Top Speed
+
+    The [V] command sets the top speed in pulses/second. This command may be sent while a command
+
+string is already executing. (See section on Changing Speed on the Fly, earlier in this chapter.)
+
+  Command             <n> Parameter Value         Default Value                      Description
+         V                    1-6000                   4000                  Set top speed in pulses/sec.
+
+    Note: According to the different specifications of the syringe, the value can be adjusted to 12000, but
+
+we can only guarantee that 1-6000 will run perfectly on the syringe we provide. For the speed set higher
+
+than V6000, Users must determine the appropriate speeds for their actual applications.
+
+    S        <n> Set Speed
+
+    The [S] command sets a predefined top plunger speed, in pulses/sec. As <n> increases, the plunger
+
+speed decreases.
+
+  Command            <n> Parameter Value         Default Value                       Description
+         S                    0-40                      11             Set plunger drive speed in pulses/sec.
+
+    These speed settings do not cover the full range of speeds the plunger can travel. They are commonly
+
+used speeds provided for the convenience of the user. All times are approximate and will vary with different
+
+ramp speeds and cutoffs. For information on determining timing for specific applications, see Appendix B,
+
+"Plunger Information".”
+
+    The [S] command sets top speed without changing start speed, slope, and cutoff speed, except under
+
+the following conditions:
+
+             If the start speed is higher than the (new) top speed, start speed is changed to equal the top speed.
+
+             If the cutoff speed is higher than the (new) top speed, cutoff speed is changed to equal the top
+
+speed.
+
+    Speed codes, the Hz (pulses/second) equivalent, and seconds per stroke are listed below.
+
+                                                                                                             43
+www.runzeliuti.com
+Seconds/stroke values are based on default ramping
+
+                                     Value           Seconds/stroke   Seconds/stroke
+      Speed Code
+                                  (pulses/sec)         (N=0, N=1)         (N=2)
+            0                        6000                  2                16
+            1                        5600                 2.2              17.6
+            2                        5000                 2.5              20
+            3                        4400                 2.7              21.6
+            4                        3800                 3.1              24.8
+            5                        3200                 3.8              30.4
+            6                        2600                 4.1              32.8
+            7                        2200                 5.5              44
+            8                        2000                  6               48
+            9                        1800                 6.7              53.6
+           10                        1600                 7.5              60
+           11                        1400                 8.5              68
+           12                        1200                 10               80
+           13                        1000                 12               96
+           14                         800                 15               120
+           15                         600                 20               160
+           16                         400                 30               240
+           17                         200                 60               480
+           18                         190                 63               504
+           19                         180                 67               536
+           20                         170                 72               576
+           21                         160                 75               600
+           22                         150                 80               640
+           23                         140                 87               696
+           24                         130                 93               744
+           25                         120                 101              808
+           26                         110                 108              864
+           27                         100                 120              960
+           28                         90                  135             1080
+           29                         80                  150             1200
+           30                         70                  171             1368
+           31                         60                  204             1632
+           32                         50                  240             1920
+           33                         40                  300             2400
+           34                         30                  408             3264
+           35                         20                  600             4800
+           36                         18                  660             5280
+           37                         16                  750             6000
+           38                         14                  870             6960
+           39                         12                 1008             8064
+
+                                                                                  44
+www.runzeliuti.com
+                40                         10                          1200                      9600
+
+     Note: To achieve maximum stroke time 200 minutes for N=0, N=1 or 1600 minutes for N=2, At this
+
+time, the [S] speed code is not available, and the [V1] instruction is required for programming.
+
+     c <n> Cutoff Speed in Pulses/Second
+
+     The [c] command sets the speed at which the plunger ends its movement, in pulses/sec. The plunger will
+
+ramp down (slope) from the peak speed. The [c] command overwrites the [C] command.
+
+Command              <n> Parameter Value    Default Value                        Description
+                           1-5400                 900           Set cutoff speed in half-steps/sec (N=0,N=1)
+         c
+                           1-1500                 900             Set cutoff speed in micro-steps/sec (N=2)
+
+     Note: [c] is only valid in a dispense move. During aspiration, [c] = [v]
+
+     4.5.4 Interaction of Set Commands
+     The Start Speed [v], Top Speed [V], and Cutoff Speed [c] commands interact according to the following
+
+rules:
+
+     [v]≤[c]≤[V]
+
+     1. Start Speed should always be less than or equal to Top Speed. Changing the Start Speed will change
+
+the Cutoff Speed if Cutoff Speed is less than the Start Speed set. If the Start Speed [v] is greater than the Top
+
+Speed, the Start Speed will be set equal to the Top Speed.
+
+     2. Top Speed should always be greater than or equal to the Start Speed and Cutoff Speed. Changing the
+
+Top Speed will modify the Cutoff Speed and Start Speed if they were improper, but will not modify the
+
+stored Start Speed. For instance, values of 750, 100 and 1200 will cause the pump to run simply at the top
+
+speed of 100.
+
+     3. Cutoff Speed [c] should always be less than or equal to Top Speed [V] and greater than or equal to
+
+Start Speed [v]. Changing the Cutoff Speed will not modify the Start Speed or Top Speed. However, if Cutoff
+
+Speed is greater than Top Speed it will be ignored and the Cutoff Speed will be set equal to the Top Speed.
+
+And if the Cutoff Speed is set less than Start Speed, it will be ignored and the Cutoff Speed will be set equal
+
+to the Start Speed.
+
+     4.5.5 Control Commands
+     R       Execute Command or Program String
+
+     The [R] command tells the pump to execute a new or previously loaded but unexecuted command
+
+string. This command will also cause the resumption of a halted (“H”) or terminated (“T”) command string.
+
+     Commands containing [R] at the end of the string will execute immediately. If the command or program
+
+string is sent without the [R], it is placed in the command buffer.
+
+                                                                                                           45
+www.runzeliuti.com
+    Sending the [R] alone will execute the last unexecuted command in the buffer. Sending another [R] will
+
+not repeat the program string (i.e., the string has been executed.
+
+    X Execute the Last Command or Program String
+
+    The [X] command repeats the last executed command or program string.
+
+    G <n> Repeat Command Sequence
+
+    This command repeats a command or program string the specified number of times. If a GR or a G0R is
+
+sent, the sequence is repeated until a Terminate command [T] is issued. The G command can be used to nest
+
+up to 10 loops and can be repeated up to 48,000 times.
+
+    The syntax for this command is:
+
+    [G<n>]
+
+    where <n> = 0..48000
+
+    For example, [A3000A0G10R] moves the syringe plunger to position 3000 then back to position 0. This
+
+sequence is repeated 10 times.
+
+    g   Mark the Start of a Repeat Sequence
+
+    The [g] command is used in conjunction with the [G] command. The [g] command marks the beginning
+
+of a repeat sequence (loop) that occurs within a program string (i.e., the entire string is not repeated). Both
+
+the [g] and [G] commands can be used to nest up to 10 loops.
+
+    Table 3-7, Example Program String, shows the various segments of the command string
+
+[A0gP50gP100D100G10G5R].
+
+          Command Segment                                              Description
+                   A0                                         Move plunger to position 0
+                     g                                               Outer loop start.
+                   P50                                    Move plunger down 50 increments.
+                     g                                               Inner loop start.
+                  P100                                    Move plunger down 100 increments
+                  D100                                     Move plunger up 100 increments.
+                   G10                                        Inner loop, repeat 10 times.
+                   G5                                          Outer loop, repeat 5 times
+                     R                                          Execute command string
+                                       Figure3-7 Example Program String
+
+    M <n>     Delay Command Execution
+
+    The [M] command delays execution of a command in milliseconds to the closest multiple of five. This
+
+command is typically used to allow time for liquid in the syringe and tubing to stop oscillating, thereby
+
+enhancing precision. The syntax for this command is:
+
+                                                                                                         46
+www.runzeliuti.com
+    [M<n>]
+
+    where <n> = 0..30,000 milliseconds (5 is the default)
+
+    H <n>     Halt Command Execution
+
+    The [H] command is used within a program string to halt execution of the string. To resume execution,
+
+an [R] command or TTL signal must be sent.
+
+    The syntax for this command is:
+
+    [H<n>]
+
+    where <n> = 0..2
+
+    Two TTL inputs are available, input 1 (P11 pin 7) and input 2 (P11 pin 8). They control execution as follows:
+
+    <n> = 0 Waits for [R] or either input 1 or 2 to go low
+
+    <n> = 1 Waits for [R] or input 1 to go low
+
+    <n> = 2 Waits for [R] or input 2 to go low
+
+    Note: If the value of <n> is not specified, <n> defaults to 0.
+
+    The status of the TTL input lines can also be read by using [?13 ]and [?14].
+
+    These commands are described in “Report Commands” later in this chapter
+
+    T Terminate Command
+
+    The [T] command terminates plunger moves in progress （[A]，[ [a]，[ P ]，[ p], [ D] and [ d]）, control
+
+loops, and delays [M].
+
+    Note: The [T] command will not terminate Valve Move commands. The [T] command will terminate both
+
+single commands and program strings. If a program string is terminated before completion, the [R]
+
+(Execution) command will resume the program string. If the command was terminated due to a problem or
+
+error, the pump must be reinitialized.
+
+    Caution! When a plunger move is terminated, lost increments may result. Reinitialization is
+
+recommended following termination.
+
+    For “H”command and “T”command: In the string containing “H”command, the execution of the
+
+string will stop when the execution command encouters the “H”command, and the“R”command should
+
+be sent to execute the following instructions of the “H”command. When the subsequent instructions are
+
+executed, sending the "R" command will re-execute this instruction containing the "H" command; For a
+
+command that is being executed, sending the "T" command will terminate the movement being executed,
+
+and then send "R" command will re-execute the remaining string command.
+
+    J <n>    Auxiliary Outputs
+
+    The [J] command sets the TTL output lines.
+
+    The syntax for this command is:
+                                                                                                             47
+www.runzeliuti.com
+    [J<n>]
+
+    where <n> = 0..7 (0 is the default)
+
+    SY01B provides three TTL outputs on P11 (pins 13, 14, and 15) that correspond to outputs 1, 2, and 3.
+
+They are controlled as shown in the following table:
+
+       Command                  Output 1 (pin 13)             Output 2 (pin 14)        Output 3 (pin 15)
+             J0                           0                         0                          0
+             J1                           1                         0                          0
+             J2                           0                         1                          0
+             J3                           1                         1                          0
+             J4                           0                         0                          1
+             J5                           1                         0                          1
+             J6                           0                         1                          1
+             J7                           1                         1                          1
+
+    0 = low; for example, Gnd
+
+    1 = high; for example, +5V DC
+
+     4.5.6 Non-Volatile Memory (EEPROM) Commands
+    The non-volatile memory in the SY01B can store a program string thus providing the user with the
+
+option of computer-free operation. The pump can be configured to run stored programs using the U<30>
+
+command. See “Pump Configuration Commands” earlier in this chapter.
+
+    s<n>          Load Program String into Non-Volatile Memory
+
+    The [s] command is placed at the beginning of a program string to load the string into the non-volatile
+
+memory. The syntax for this command is:
+
+    [s<n>]
+
+    where <n> = 0..14
+
+    Up to 15 program strings (numbered 0 through 14) can be loaded into the non-volatile memory. Each
+
+string can use up to 128 characters.
+
+    For example, [IA3000OA0R] requires 10 bytes.
+
+    Example Program String: [s8ZS1gIA3000OA0GR] ]
+
+Command Segment                                              Description
+      s8                    Loads string into program 8 of non-volatile memory (Addressswitch position 8)
+      Z                                                    Initializes pump
+      S1                                                 Sets plunger speed
+      g                                                  Marks start of loop
+       l                                             Turns valve to input position
+    A3000                                           Moves plunger to position 3000
+      O                                             Turns valve to output position
+
+                                                                                                      48
+www.runzeliuti.com
+         A0                                           Moves plunger to position 0
+         G                                               Endlessly repeats loop
+         R                                             Executes command string
+    e < n > Execute Non-Volatile Memory Program String
+
+    Non-volatile memory command strings are executed by sending an [e] command. The executing
+
+program string can be terminated using the [T] command.
+
+    [e<n>]
+
+    where <n> = 0..14 (the string number)
+
+    Note: An Initialization command should always be included in the non-volatile memory command string
+
+if the pump will be used in standalone mode.
+
+    U30 Set Run from Non-Volatile Memory Auto Mode
+
+    The [U30] command sets the “Run from Non-Volatile Memory Auto Mode” flag in the non-volatile
+
+memory and begins operating the pump in stand alone mode. The pump will run one of 15 command
+
+strings <n> as selected by the address switch,
+
+    where <n> = 0..E
+
+    U31 Clear Run From Non-Volatile Memory
+
+    The [U31] command clears the “Run from Non-Volatile Memory Auto Mode”flag in the EEPROM and
+
+begins operating in the default mode.
+
+    Linking Program Strings in the Non-Volatile Memory
+
+    Non-volatile memory program strings can be linked by ending one program string with an [e]
+
+command that refers to a second program string.
+
+    Example Program Strings:
+
+    [slZgIA3000OA0G5e2R]
+
+    [s2gIA3000OgHD300G10GR]
+
+    The first string loads an initialization and prime sequence into program 1 of the non-volatile memory
+
+(address switch position 1). It then links to string 2 in the non-volatile memory.
+
+    The second string loads an aspirate and dispense sequence into program 2 of the non-volatile memory.
+
+The second non-volatile memory program string fills the syringe, then performs 10 dispenses of 300
+
+increments each. The dispenses are triggered by an [R] command. This string is repeated endlessly until the
+
+pump is powered down.
+
+    On power-up the pump will automatically initialize, prime and perform the multiple dispenses until it is
+
+again powered down.
+
+
+
+                                                                                                      49
+www.runzeliuti.com
+       4.5.7 Report Commands
+       Report commands do not require an [R] command.
+
+       ？   Report Absolute Plunger Position
+
+       The [?] command reports the absolute position of the plunger in half-steps[N0] or in microsteps [N1,
+
+N2].
+
+       ？1 Report Start Speed
+
+       The [?1] command reports the start speed in pulses/sec [1...1000]
+
+       ？2 Report Top Speed
+
+       The [?2] command reports the top speed in pulses/sec [1....12000]
+
+       ？3 Report Cutoff Speed
+
+       The [?3] command reports the cutoff speed in pulses/sec [1....5400]
+
+       ？4 Report Actual Position of Plunger
+
+       The [?4] command reports the plunger encoder position in increments.
+
+       ？6 Report Valve Position
+
+       The [?6] command reports the valve position in mnemonics (i = input, o =output, e = extra, and b =
+
+bypass for non-distribution valves.
+
+       For distribution valves, the [?6] command reports ASCII values 1..X, where X is the number of distribution
+
+valve ports.
+
+       ？10 or F Report Command Buffer Status
+
+       The [?10] or [F] command reports the command buffer status. If the buffer is empty, the pump returns
+
+status code 0. If the buffer is not empty, the pump returns a 1. If a program string is sent to the pump
+
+without an [R] command, the string is loaded into the buffer and the buffer status becomes 1. An [R]
+
+command will then execute the command stored in the buffer.
+
+       0 = empty
+
+       1 = commands in buffer
+
+       ？12     Report Number of Backlash Increments
+
+       The [?12] command reports the number of backlash increments as set by the“K” command.
+
+       ？13       Report Status of Auxiliary Input #1 (P11, Pin 7)
+
+       0 = low
+
+       1 = high
+
+       ？14     Report Status of Auxiliary Input #2 (P11, Pin 8)
+
+       0 = low
+
+       1 = high
+                                                                                                           50
+www.runzeliuti.com
+    ？15 Report Number of Pump Initializations
+
+    Command [?15] reports the number of pump initializations. This value cannot be reset.
+
+    ？16 Report Number of Plunger Movements
+
+    Command [?16] reports the number of plunger moves. This value cannot be reset.
+
+    ？17 Report Number of Valve Movements
+
+    Command [?17] reports the number of valve movements. This value cannot be reset
+
+    ？18 or % Report Number of Valve Movements (Since Last Report)
+
+    The [?18] or [%] command reports the number of valve movements since the last [?18] or [%] command.
+
+    ？24 Report the Zero Gap increments
+
+    The [?24] command reports the value set by the“k”command. The value reported is in half steps (N=0)
+
+or in microsteps (N=1, N=2).
+
+    ？25 Report Slope Code Setting
+
+    The [?25] command reports the slope code setting as set by the “L”command.
+
+    ？28       Report Current Mode
+
+    The [?28] command reports the current mode as set by the “N” command (normal, fine positioning, or
+
+microstep).
+
+    ？29 or Q Report the Device Status
+
+    The [?29] command reports device status (error code).
+
+    ？76       Report Pump Configuration
+
+    The [?76] command reports pump configuration in ASCII text.
+
+    ？200 Verify conf file
+
+    [?200]
+
+    ？201 Query log
+
+    [?201]log is used to record the current device status, The log can be queried only when there is an error
+
+again, normally, the log is 0.
+
+    ？202 Query sequence number
+
+   [?202] can be used to query the sequence number of the current device, and the sequence number of
+
+each device is unique.
+
+    ?203 Query encoder
+
+    [?203]value=n/(2*200)*920    n:The value of the plunger from the zero point
+
+    ？300-? 314 Query the program string of s0-s14
+
+    [?300] Query the program string written in s0
+
+    * Report Voltage
+                                                                                                       51
+www.runzeliuti.com
+    The [*] command reports the value of the device power supply. The value is multiplied by 10. For
+
+example, if V = 24.0 VDC, the * command reports 240
+
+    <    Report User Data
+
+    The [<] command returns the value of user data stored in the EEPROM. The
+
+    value <n> is between 0 and 15; 0 is the default.
+
+4.6 Error Codes and Pump Status
+    The [Q] command is used for serial communications and reports error codes and pump status (ready or
+
+busy). The user should send a [Q] command before sending a program string or individual command to
+
+ensure that the pump has completed the previous command successfully.
+
+    Note: [Q] is the only valid method for obtaining pump status in serial mode.
+
+    Note: [Q] command (the status byte) provides two items of information: Pump status (bit 5) and error
+
+code (bits 0-3).
+
+     4.6.1 Status Bit
+    Bit 5 is the status bit. It indicates when the pump is busy or not busy. The designations for bit 5 are listed below.
+
+      Status Bit 5                                                  Description
+         X=1                                        Pump is ready to accept new commands.
+          X= 0                      Pump is busy and will only accept Report and Terminate commands.
+
+    In response to uppercase Move commands ([A], [P] and [D]), the [Q] command reports that the pump is
+
+busy. In response to lowercase Move commands ([a], [p]and [d]), the [Q] command reports that the pump is
+
+not busy. Additionally,commands addressed to multiple pumps at once cannot be used to obtain pump
+
+status; pumps must be queried separately.
+
+    Note: Although the answer block for other commands contains a status bit, it should not be used for
+
+determining pump status. A [Q] command is the only valid method to determine if the pump is busy. The
+
+error information in the status byte of the answer block is always valid.
+
+     4.6.2 Error Codes
+    Error codes describe problem conditions that may be detected in the SY01B (excluding error code 0).
+
+Error codes are returned in the least significant four bits of the status byte. If an error occurs, the pump stops
+
+executing commands, clears the command buffer, and inserts the error code into the status byte.
+
+    Some errors continue to appear, such as syringe overloads, until they are cleared by the Initialization
+
+command. On a plunger overload, the device will not execute another valve or syringe Move command until
+
+it is reinitialized. The last error has precedence in the status byte. For example, if a command overflow occurs,
+
+an error 15 results. If the next command causes an error #3, the status byte reflects the error #3 (invalid
+
+                                                                                                                   52
+www.runzeliuti.com
+operand)
+
+ Error Code                                               Description
+  0（00H）       Error Free Condition.
+               Initialization error. This error occurs when the pump fails to initialize.Check for blockages
+               and loose connections before attempting to reinitialize. The pump will not accept
+  1（01H）
+               commands until it has been successfully initialized. This error can only be cleared by
+               successfully initializing the pump.
+               Invalid Command. This error occurs when an unrecognized command is issued. Correct the
+  2（02H）
+               command and operation will continue normally
+               Invalid Operand. This error occurs when an invalid parameter (<n>) is given with a
+  3（03H）
+               command. Correct the parameter and pump operation will continue normally
+               EEPROM Failure. This error occurs when the EEPROM is faulty. If you receive this error,
+  6（06H）
+               please call Runze Technical Service.
+               Device Not Initialized. This error occurs when the pump is not initialized. To clear the error,
+  7（07H）
+               initialize the pump.
+
+  8（08H）       Internal failure. If this error occurs, please call Runze Technical Services.
+
+               Plunger Overload. This error occurs when movement of the syringe plunger is blocked by
+  9（09H）       excessive backpressure. The pump must be reinitialized before normal operation can
+               resume. This error can only be cleared by reinitializing the pump.
+               Valve Overload. This error occurs when the valve drive loses increments by blockage or
+               excess backpressure. The pump must be reinitialized before normal operation can resume.
+ 10（0AH）
+               Sending another Valve command reinitializes the valve and sets it to the correct location.
+               Continual valve overload errors are an indication the valve should be replaced.
+               Plunger Move Not Allowed. When the valve is in the bypass or throughput position, Plunger
+ 11（0BH）
+               Movement commands are not allowed.
+ 12（0CH）       Internal failure. If this error occurs, please call Runze Technical Services.
+               A/D converter failure. This error occurs when the internal A/D converter is faulty. If this error
+ 14（0EH）
+               occurs, please call Runze Technical Services.
+               Command Overflow. This error occurs when action commands are sent to the pump before
+ 15（0FH）       it has completed the current action. Commands in the buffer must be executed before more
+               commands can be sent.
+                                               Figure 3-8 Error Codes
+
+     4.6.3 Error Types
+    The pump handles errors differently, depending on the error type. There are four error types, which are
+
+described below.，
+
+    Immediate Errors
+
+    These include “Invalid Command”(error 2), “Invalid Operand” (error 3).            After the command is sent,
+
+the answer block immediately returns an error. Once a valid command is sent, the pump will continue to
+
+function normally. Since the [Q] command is a valid command, the pump will not return an error. In this case,
+                                                                                                           53
+www.runzeliuti.com
+the [Q] command is not required.
+
+     Note: There is no need to reinitialize the pump following this error type.
+
+     Initialization Errors
+
+     These include “Initialization errors” (error 1) and “Device not Initialized” (error 7). If the pump fails
+
+to initialize or if an Initialization command has not been sent, subsequent commands will not be executed.
+
+     To ensure that the pump initializes successfully, send a [Q] command after the Initialization command.
+
+    If the [Q] command indicates both a successful initialization and that the pump is ready, subsequent
+
+     Move commands can be sent.
+
+    If the [Q] command indicates the pump has not initialized, the pump must be reinitialized until the [Q]
+
+     command indicates successful initialization.
+
+    If initialization is not successful, a “Device Not Initialized” error is returned as soon as the next Move
+
+     command is sent.        A successful reinitialization must be executed before subsequent commands can be
+
+     sent.
+
+     Overload Errors
+
+     These include the “Plunger Overload” and “Valve Overload” errors (errors 9 and 10). If the pump
+
+returns either a plunger or valve overload, the pump must be reinitialized before continuing. If another
+
+command is sent without reinitializing the pump, another overload error will be returned when the next
+
+Move command is issued. The [Q] command clears the error; however, if a successful initialization has not
+
+occurred, an initialization error is returned.
+
+     Command Overflow Error
+
+     This is error 15, and it occurs if a Move command, Set command (except [V]), or Valve command is sent
+
+while the plunger is moving. The pump ignores the command and issues an error 15. The [Q] command
+
+allows the controller to determine when the command is complete and the pump is ready to accept new
+
+commands.
+
+     Note: There is no need to reinitialize the pump following this error type.
+
+     Report commands, Control commands, and the Top Speed command [V] will not return an error 15.
+
+Report and Control commands are considered valid commands during a Move. Because the pump can
+
+change speed while the plunger is moving in the 1-12000 pulses/sec range, the [V] commands will not
+
+return a “Command Overflow” error.
+
+     Caution! All errors reported by the pump should be captured by the user software and the physical
+
+cause corrected before continuing operation. Failure to do so may result in damage to the pump or
+
+adversely affected pump performance,and void the warranty.
+
+
+                                                                                                         54
+www.runzeliuti.com
+   Status Byte       Hex # if Bit 5 =     Dec # if Bit 5 =                  Error Code
+  76543210            0         or 1        0         or1    Number                  Error
+  01X00000           40H        60H        64         96        0                  No Error
+  01X00001           41H        61H        65         97        1                Initialization
+  01X00010           42H        62H        66         98        2             Invalid Command
+  01X00011           43H        63H        67         99        3              Invalid Operand
+  01X00110           46H        66H        70        102        6              EEPROM Failure
+  01X00111           47H        67H        71        103        7            Device not Initialized
+  01X01001           49H        69H        73        105        9             Plunger Overload
+  01X01010           4AH        6AH        74        106       10               Valve Overload
+  01X01011           4BH        6BH        75        107       11         Plunger Move Not Allowed
+  01X01100           4CH        6CH        76        108       12               Internal Failure
+  01X01110           4EH        6EH        78        110       14            A/D converter failure
+  01X00000           4FH        6FH        79        111       15            Command Overflow
+
+
+                                        Error Reporting Examples
+
+                      Does not move the plunger and reports a “No Error” status; when queried ([Q]
+      [A7000R]
+                      command), returns error. A second try returns error 3 (67)
+
+   [P12000P600R]      Moves to position 6000, then stops. A [Q] command returns an error.
+
+      [t2000R]        Returns an invalid command error immediately. The pump status is “Not Busy”
+
+  [A12000t2000R]      Returns an invalid command error immediately. The pump is“Not Busy.”
+
+   Valve in Bypass    Returns an error immediately; when queried ([Q] command),does not return an
+      [A1000R]        error.
+
+
+
+
+                                                                                                      55
+www.runzeliuti.com
+          Chapter 5 Setting Up the SY01B for Application
+     The SY01B is capable of providing precision pumping in a wide variety of liquid handling systems. The
+
+interplay of fluid viscosity, aspiration and dispense speeds, and system geometry (syringe size, tubing inner
+
+diameter, and valve inner diameter) determine the behavior of the SY01B in a particular application.
+
+Following is a description of the hardware, fluid, and pump control parameters to be evaluated and
+
+optimized in managing these interdependencies for optimal pump performance.
+
+5.1 Glossary
+     air gap
+
+     A small volume of air at the end of the output tubing or sandwiched between two fluids in the pump
+
+system tubing. Air gaps may be created by aspirating air (programmed air gaps) or by the spring action of
+
+the fluid system (inertial air gaps).
+
+     Aspirate/Dispense Tubing
+
+     Connects the valve output port (1/4-28 thread fitting) to a sample source and destination. To ensure
+
+good breakoff, aspirate/dispense tubing tends to have a smaller I.D. than reagent tubing, and a
+
+necked-down or tapered end.
+
+     Backlash
+
+     Mechanical play in the syringe drive created by accumulated mechanical clearances.
+
+     Backpressure
+
+     The pressure which must be exceeded to move fluid through tubing. Backpressure is created by a
+
+combination of fluid inertia and friction.
+
+     Breakoff
+
+     Describes how the last droplet of fluid exits the end of the output tubing following a dispense. Rapid or
+
+sharp breakoff means that the droplet exits cleanly with high inertia.
+
+     Breakup
+
+     Undesired air gaps created by overly rapid aspiration.
+
+     Carryover
+
+     Contamination of a volume of fluid by residual fluid from a previous aspiration or dispense. Carryover
+
+                                                                                                        56
+www.runzeliuti.com
+causes variability in final volume and concentration.
+
+    Cavitation
+
+    Formation of air bubbles due to rapid pressure changes. Often caused by aspirating fluid into the
+
+syringe too quickly.
+
+    Dilution effect
+
+    Reduction in sample or reagent concentration, caused by contact with system fluid or residual fluid from
+
+a previous aspiration or dispense.
+
+    I.D. (“inner diameter”)
+
+    Diameter of the constraining wall of a fluid path.
+
+    Priming
+
+    Completely filling the pump tubing and syringe with bubble-free fluid to allow sustained, reproducible
+
+pumping action. The air in an unprimed line acts as a spring, adversely affecting accuracy and precision.
+
+    Reagent Tube
+
+    Connects the valve input port (1/4-28 thread fitting) to a reagent source. Reagent tubing is used to fill
+
+the pump syringe; it tends to have a larger I.D. than aspirate/dispense tubing, and a blunt-cut end which
+
+extends into the reagent.
+
+    System Fluid
+
+    A fluid used to prime the pump system that does not act as sample or reagent. Typically the system fluid
+
+is deionized water or a wash buffer and is isolated from sample or reagent fluid by an air gap to avoid
+
+intermixing.
+
+    Syringe Speed Profile
+
+    Typically, the syringe plunger begins moving slowly, then ramps up to top speed. This allows the
+
+plunger to start moving gradually, without overloading the motor, and still provide maximum flowrate. The
+
+syringe plunger stops by ramping down in speed. This results in the most reproducible fluid breakoff for
+
+accurate dispensing.
+
+    Start Speed (v)
+
+    The speed at which the syringe plunger starts moving.
+
+    Top Speed (V)
+
+    The maximum speed at which the syringe plunger moves.
+
+    Cutoff Speed (c)
+
+    The speed of the syringe plunger just before stopping.
+
+    Slope (L)
+
+    Acceleration (deceleration) of the syringe plunger between start speed, top speed, and cutoff speed.
+                                                                                                        57
+www.runzeliuti.com
+    Volume Calculation
+
+    The volume aspirated or dispensed when the syringe plunger moves a specified number of increments
+
+depending on the syringe size. To determine the number of increments required to aspirate or dispense a
+
+given volume, use the following formula:
+
+    # of increments = ((pump resolution) x volume)/ syringe size
+
+    For example, to aspirate 100 µL using an SY01B pump with 1 mL syringe, move the plunger as follows:
+
+    # of increments = (12000 increments x 100 µL)/ (1 mL x 1000 µL/mL) = 1200 increments
+
+5.2 Optimizing SY01B Performance
+    Caution! Run the pump only in the upright position. Do not move the pump valve or syringe plunger
+
+without first wetting or priming the pump.For command details, see Chapter 3, "Software Communication".
+
+    To optimize SY01B performance, follow these steps:
+
+    1. Select syringe size.
+
+    Determine your volume and flowrate requirements. Select a syringe that accommodates the smallest and
+
+largest volumes to be dispensed without refill, as well as the desired flowrate (see Table 4-1, Flowrate Ranges).
+
+While smaller syringes allow better accuracy and precision, a larger syringe allows more aliquots when
+
+multiple aspirations or multiple dispenses are required, and they allow better breakoff and longer seal life.
+
+    2. Select tubing.
+
+    In tubing selection, the general rule is that smaller syringes work best with smaller I.D. tubing and larger
+
+syringes with larger I.D. tubing. The M01-M05 SY-01B valve has an internal I.D. of 1.5mm, the M06. M10.
+
+M12 valve has an internal I.D. of 1.2mm.
+
+    3. Make pump connections.
+
+    Connect power and communications cables to the pump, install syringe and tubing. Place the end of the
+
+input tubing in a reservoir of particle-free fluid; place the end of the output tubing in a waste reservoir.
+
+    4. Check communications to the pump.
+
+    – Open the Pump:Link program to the SY01B menu (full page), or use your own communications
+
+program.
+
+    –Send the command [?29] to read the pump’s current status. Successful communication will return to
+
+the “Ready” status.
+
+    Possible errors:
+
+    –No response. Check for loose or incorrectly connected cables, or connection to the wrong computer
+
+COM port. Retry.
+
+    5. Initialize pump and set initialization speed
+
+                                                                                                               58
+www.runzeliuti.com
+     The following information assumes that your input tubing connects to the right valve port. If your input
+
+tubing connects to the left valve port, exchange [Y] for all instances of [Z] in the following commands.
+
+     – Send the command [ZR] to initialize the pump. Successful initialization will move the syringe plunger
+
+to the position “0” (fully dispensed) and return the“Ready” status.
+
+     Possible errors:
+
+     – Error 1 (initialization error). Check for tubing blockage and reinitialize. If you are using very narrow I.D.
+
+tubing or pumping a viscous fluid, the initialization speed may need to be reduced.
+
+     – This is accomplished (only if using a 1 mL or larger syringe) by sending the command [Z16R]
+
+(initializes at full-force, reduced speed). Repeat with decreasing initialization speed (increase “Z_” value)
+
+until the pump
+
+  successfully initializes.
+
+     6. Prime the syringe
+
+     – Send the command [IA12000OA0R] to pull fluid through the valve input position and into the syringe.
+
+     – Inspect the pump tubing and syringe for bubbles and re-prime until all bubbles are completely gone.
+
+     If bubbles remain after several priming strokes, disassemble the syringe and clean it with alcohol. Also
+
+check to ensure the fittings are tight and the syringe is tight within the Teflon fitting.
+
+     – Re-prime.
+
+     Possible errors:
+
+     – Error 9 (plunger overload). See step 8.
+
+     7. Check aspirate/dispense.
+
+     Send the command [IA12000OA0R] to aspirate a full syringe stroke (12000 increments) from input and
+
+dispense it to output. Successful execution will move the syringe plunger to position “12000” then back to
+
+“0,” then it will return a “Ready” status.
+
+     Possible errors:
+
+     – Error 9 (plunger overload). The stepper motor is unable to move the syringe plunger, probably
+
+because of excessive backpressure caused by excessive flowrate, narrow tubing I.D., or valve or tubing
+
+blockage. Note whether the error occurred during aspiration or dispensing. To differentiate between
+
+blockage and flowrate limitation, reduce syringe plunger speed by sending the command [S12IA3000OA0R].
+
+Repeat with decreasing plunger speed (increase “ S_ ” value) until the pump aspirates and dispenses
+
+successfully.
+
+     8. Set start speed and top speed.
+
+     The SY01B plunger speed can be controlled from 1.2 seconds per stroke to 160 minutes per stroke (top
+
+speed) using the [S] or [V] commands. (The [V] command allows a slightly larger speed range.) As a general
+                                                                                                              59
+www.runzeliuti.com
+rule, aspiration should be slow (to avoid cavitation) and dispense fast (to promote breakoff). Since cavitation
+
+and breakoff will affect both accuracy and precision, speed settings may be optimized separately for
+
+aspiration and dispense.
+
+     Using aspirate/dispense commands, set start speed [v] and top speed [V] to meet application
+
+throughput goals.
+
+     – Send the command [v50IA12000OA0R]. Repeat with increasing start speed (increase “v_” value) to
+
+find the maximum value.
+
+     – Send the command [v_V_IA12000OA0R] to set top speed equal to start speed (x). Repeat with
+
+increasing top speed (increase “V_” value) to the maximum value that does not overload the plunger or
+
+cause cavitation.
+
+     Now optimize start speed and top speed for dispensing using a similar approach.
+
+     9. Set cutoff speed and slope
+
+     Using aspirate/dispense commands, set slope [L] and cutoff speed [c] to attain reproducible breakoff.
+
+Note that cutoff speed controls only dispensing.To optimize the slope, send the command
+
+[v_V_L14IA12000OA0R]. Repeat with modified slope (“L_” value) to achieve the overall time suited to your
+
+application without plunger overload.
+
+     To optimize the cutoff speed, start with the maximum cutoff speed allowed for your application (the
+
+lower of 2700 Hz or the top speed). Send the command [c_A12000OA0R] and monitor the dispense for
+
+plunger overload or any splattering of the fluid dispensed outside of the dispense vessel. If any of these
+
+conditions occur, lower the cutoff speed until the pump can dispense the fluid with clean breakoff.
+
+     Another condition that affects breakoff is the formation of inertial air gaps. This is seen as a small air gap
+
+inside the tubing at the tip. This occurs to a greater extent on larger reagent syringes, and it enhances the
+
+breakoff of liquid from the tip of the tubing. If an inertial air gap is not desired in the application, lowering
+
+the cutoff speed and/or the top speed will remove the inertial air gap. However, this may not give a clean
+
+breakoff of the fluid.
+
+     Increasing the cutoff speed and ramp (slope) may also improve the fluid breakoff. Smaller I.D. tubing
+
+may improve breakoff, especially for smaller syringes.
+
+     Note: It may not be possible to achieve good fluid breakoff under any circumstance, especially with
+
+syringes smaller than 500 µL or with some fluids.
+
+5.3 Helpful Hints
+     To maintain pump performance, keep the following in mind when operating the SY-01B:
+
+    Wipe up all spills immediately.
+
+                                                                                                             60
+www.runzeliuti.com
+   Pumping cold fluids may cause leaks, the result of differing coefficients of expansion of Teflon and glass.
+
+    Leaks may occur when pumping fluids that are at or below 15°C (61°F).
+
+   To reduce the amount of carryover, a ratio of three parts reagent to one part sample is recommended.
+
+   Replace the valves and syringe seals as needed. (Interval may vary depending on the application.)
+
+
+
+
+             Chapter 6 Common Problems & Solutions
+     Fault                           Reason                                Troubleshooting method
+
+                   The working voltage is not in the             Check whether the actual voltage deviates
+Not working        acceptable range                              from the rated voltage
+when powered
+on                                                               Manually check whether the connection is
+                   The connection is loose or disconnected
+                                                                 good, or check the line with a multimeter
+
+Unable to
+                   The aspirating pipe is blocked by by debris   Clear the debris
+aspirate
+
+
+
+
+                                                                                                         61
+www.runzeliuti.com
+                                Chapter 7 Quick Command
+A Communication Commands
+                Command Type                               Command                     Valid/Invalid
+                     Initialization                           Z, Y, W                      Valid
+                     Initialization                              z                         Valid
+               Plunger Movement                           A, a, P, p, D, d                 Valid
+                        Valve                                 I, O, B                      Valid
+                        Valve                                    E                         Valid
+                          Set                            S, V, v, c, L, K, k               Valid
+   Command for microstep-enabled firmware                        N                         Valid
+                       Control                              G, g, M, H                     Valid
+                       Control                                   X                         Valid
+                       Control                                   R                         Valid
+                       Control                                   T                         Valid
+                       Control                        Clear loaded command                 Valid
+                       Control                               J, s, e, U                    Valid
+                        Report                           ?0 through ?314                   Valid
+                        Report                                   F                         Valid
+                        Report                                   &                         Valid
+                        Report                                   Q                         Valid
+                        Report                                   #                         Valid
+                        Report                                   %                         Valid
+                        Report                                   *                         Valid
+
+B Command Quick Reference
+    B.1 Pump Configuration Commands
+ Command                              Values of <n>                               Description
+              0 = fine positioning mode off
+                                                                     Enables or disables microstepping
+     N        1 = fine positioning mode on
+                                                                     or fine positioning mode
+              2 = microstep mode on
+
+                                                                                                         62
+www.runzeliuti.com
+              30 = Set Non-Volatile Memory Auto Mode
+              31 = Clear Non-Volatile Memory Mode
+              41 = Set RS baud rate to 9600                           Writes configuration information to
+     U
+              47 = Set RS baud rate to 38400                          non-volatile memory
+              200= Set piston reset stall current (1-31, default 5)
+              300= Set device address (1-15, default 1)
+              0….800 in full step mode (default 12)
+     K                                                                Sets number of backlash increments.
+              0...6400 in fine positioning mode (default 96)
+
+    B.2 Initialization Commands
+ Command                         Values of <n>                                       Description
+             <n1>
+             0 = initializes at full plunger force                      Initializes the plunger drive
+             1 = initializes at half plunger force                      and homes the valve in a
+             2 = initializes at one-third plunger force                 clockwise direction
+             10–40 = initializes at the defined speed
+             <n2>
+     Z       0 =Set initialization input port to Port 1
+                                                                        Sets initialization input port
+             1 x =Set initialization input port for distribution
+             valves, where X is the number of ports on the valve
+             <n3>
+             0 =Set initialization output port to Port X
+                                                                        Sets initialization output port
+             1 x = Set initialization output port for distribution
+             valves, where X is the number of ports on the valve
+             <n1>
+             0 =initializes at full plunger force                       Initializes the plunger drive
+             1 = initializes at half plunger force                      and homes the valve in a
+             2 = initializes at one-third plunger force                 counterclockwise direction.
+             10–40 = initializes at the defined speed
+             <n2>
+     Y       0 =Set initialization input port to Port 1
+                                                                        Sets initialization input ports
+             1 x =Set initialization input port for distribution
+             valves, where X is the number of ports on the valve
+             <n3>
+             0 =Set initialization output port to Port X
+                                                                        Sets initialization output port
+             1 x =Set initialization output port for distribution
+             valves, where X is the number of ports on the valve
+             <n1>
+             0 = initializes at full plunger force                      Initializes the plunger drive
+     W       1 =initializes at half plunger force                       only (commonly used for
+             2 =initializes at one-third plunger force                  valveless pumps).
+             10–40 =initializes at the defined speed
+             <n1>
+             1...x =Set initialization port where X is the number       Initializes the valve drive only
+     w
+             of ports on the valve
+             <n2>0 =Valve homes in a clockwise direction; valve         nitializes the valve drive only.
+                                                                                                           63
+www.runzeliuti.com
+                ports numbered in a clockwise direction.
+                1 =Valve homes in a counterclockwise direction;
+                valve ports numbered in a counterclockwise
+                direction.
+                                                                         Simulates initialization andsets the
+     z                                                                   current position of the
+                                                                         plunger as the home position
+                0…800 in standard mode (50 default)
+     k                                                                   Set zero gap (increments)
+                0…6400 in fine positioning or microstep mode (
+
+    B.3 Valve Commands
+                     Command                                              Description
+                        I                                         Moves valve to input position
+                       O                                         Moves valve to output position
+                        B                                        Moves valve to bypass position
+                        E                                         Moves valve to extra position
+
+    B.4 Plunger Movement Commands/Status Bit Reports
+ Command                            Value of <n>                             Description              Status
+                                     0-12000,
+   A <n>                                                                  [A] bsolute Position         Busy
+                  0-96,000 in fine positioning or microstep mode
+                                     0-12000,
+   a <n>                                                                  [a] bsolute Position        Ready
+                  0-96,000 in fine positioning or microstep mode
+                                     0-12000,
+   P <n>                                                                   Relative [P]ickup           Busy
+                  0-96,000 in fine positioning or microstep mode
+   p <n>                             0-12000,
+                                                                           Relative [p]ickup          Ready
+                  0-96,000 in fine positioning or microstep mode
+                                     0-12000,
+   D <n>                                                                  Relative [D]ispense          Busy
+                  0-96,000 in fine positioning or microstep mode
+                                     0-12000,
+   d <n>                                                                  Relative [d]ispense         Ready
+                  0-96,000 in fine positioning or microstep mode
+
+    B.5 Non-Volatile Memory (EEPROM) Commands
+  Description           Value of <n>                                    Description
+     s <n>                  0..14                   Loads command string in Non-Volatile Memory
+     e <n>                  0..14                   Executes Non-Volatile Memory command string
+      U31                                          Clears “Run from Non-Volatile Memory” flag.
+      U30                                           Sets “Run from Non-Volatile Memory” flag
+
+    B.6 Report Commands
+            Command                                                Description
+                 Q                                      Query, Status and Error Bytes
+                                                                                                          64
+www.runzeliuti.com
+               ?                                      Report absolute plunger position
+              ?1                                              Report start speed
+              ?2                                              Report top speed
+              ?3                                             Report cutoff speed
+              ?4                                      Report actual position of plunger
+              ?6                                             Report valve position
+            ?10 or F                                    Report command buffer status
+             ？12                                  Report number of backlash increments
+             ？13                                     Report status of input #1 (P11, Pin7)
+             ？14                                     Report status of input #2 (P11, Pin 8)
+             ？15                                  Report number of pump initializations
+             ？16                                  Report number of plunger movements
+             ？17                                     Report number of valve movements
+           ？18or %                        Report number of valve movements (since last report)
+           ？20 or #                                       Report firmware checksum
+           ？23 or &                                        Report software version
+             ？24                                         Report zero gap increments
+              ?29                               Same as Q (query, status and error bytes)
+              ?76                                        Report pump configuration
+             ?200                                         Report conf file checksum
+             ?201                                                   Report log
+             ?202                                            Report serial number
+             ?203                                              Report encoder
+          ?300-?314                       Report the program written to the non-volatile memory
+               *                                            Report supply voltage
+            < <n>                                          Report user data (0..15)
+
+    B.7 Error Codes and Status Byte
+    Status Byte        Hex # if Bit 5 =          Dec # if Bit 5 =                     Error Code
+   76543210             0         or 1           0            or 1       Number              Description
+   01X00000            40H        60H           64             96            0                No error
+   01X00001            41H        61H           65             97            1            Initialization
+   01X00010            42H        62H           66             98            2          Invalid command
+   01X00011            43H        63H           67             99            3           Invalid operand
+   01X00110            46H        66H           70            102            6           EEPROM failure
+   01X00111            47H        67H           71            103            7        Device not initialized
+   01X01001            49H        69H           73            105            9          Plunger overload
+   01X01010            4AH        6AH           74            106           10           Valve overload
+
+                                                                                                           65
+www.runzeliuti.com
+                                                                                     Plunger move not
+    01X01011             4BH          6BH           75          107       11
+                                                                                          allowed
+    01X01100             4CH          6CH           76          108       12          Internal failure
+    01X01110             4EH          6EH           78          110       14       A/D converter failure
+    01X01111             4FH          6FH           79          111       15        Command overflow
+
+
+
+
+C Switching Protocol
+    SY08 has two protocols, RUNZE and ASCII protocol. If you need to switch protocols, you can refer to the
+
+following steps (both need to be powered off after switching)
+
+1. Burn-in Protocol
+   If the default programmed command is the ASC II command, it will query the following return code
+
+    Send→ 91 EB 07 00 00 00 00 00 00 D5 28 FF F8
+
+    Receive← 91 EB 0A 01 00 02 C4 47 0B 00
+
+    0A parameter definition: 0A stands for ASC II
+
+   If the default programmed command is the RUNZE command, it will query the following return code
+
+    Send→ 91 EB 07 00 00 00 00 00 00 D5 28 FF F8
+
+    Receive← 91 EB 02 01 00 63 D7 F6 AB 00
+
+    02 parameter definition: 02 stands for RUZNE
+
+2. Switching protocol (must use RS232 port to switch the address, and must be powered
+
+off after switching)
+   If RUNZE command is required, the following code can be used to switch the address
+
+    Set the address to 0x0802 (RUNZE)
+
+    Send→ 91 EB 03 00 00 02 08 00 00 0C 0A 69 69
+
+    Receive← 91 EB 00 01 00 0D 5A 8A 40 00
+
+    The values queried after the setting are as follows.
+
+    Send→ 91 EB 07 00 00 00 00 00 00 D5 28 FF F8
+
+    Receive← 91 EB 02 01 00 63 D7 F6 AB 00
+
+   If ASC II command is required, the following code can be used to switch the address
+
+    Send→ 91 EB 03 00 00 0A 08 00 00 6D 19 D8 C9
+
+    Receive← 91 EB 00 01 00 0D 5A 8A 40 00
+
+    The values queried after the setting are as follows.
+
+    Send→ 91 EB 07 00 00 00 00 00 00 D5 28 FF F8
+                                                                                                         66
+www.runzeliuti.com
+    Receive← 91 EB 0A 01 00 02 C4 47 0B 00
+
+
+
+
+                      Chapter 8 Version Description
+     Version                         Description                   Release Date
+
+
+      V1.0                          Initial Version                 2024.11.14
+
+                      Added note: Gasket required for valve head
+      V1.3                                                          2025.3.15
+                                     installation
+
+      V1.4              PSU material changed to PPS material        2025.4.16
+
+
+
+
+                                                                                  67
+www.runzeliuti.com
+                         Chapter 9Technical Services
+
+ Nanjing Runze Fluid Control Equipment Co.,LTD
+
+
+ Landline (FAX)         025-5119 7362
+
+ SALE                   +86 173 6638 4502
+
+ Technical Service      +86 198 2581 4316
+
+ Email                  runzeliuti@runzeliuti.com
+
+ Website                www.runzeliuti.com
+
+ Shop                   https://runzeliuti.en.alibaba.com
+                        No.9 Tianxing West Road, Dongshan Street, Jiangning District, Nanjing, Jiangsu
+ Address
+                        Province, China
+
+
+
+
+                                                                                                   68
+www.runzeliuti.com
+                     69
+www.runzeliuti.com
+
