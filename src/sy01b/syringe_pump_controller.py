@@ -89,7 +89,11 @@ class SyringePumpController:
 
         @property
         def full_stroke_steps(self) -> int:
-            return 12_000 if self is SyringePumpController.StepMode.NORMAL else 96_000
+            return (
+                12_000
+                if self is SyringePumpController.StepMode.NORMAL
+                else 96_000
+            )
 
     class ValvePosition(StrEnum):
         """Non-distribution valve states. Command bytes (uppercase); ?6 replies in lowercase.
@@ -104,7 +108,9 @@ class SyringePumpController:
         EXTRA = "E"
 
         @classmethod
-        def from_query_reply(cls, text: str) -> SyringePumpController.ValvePosition | None:
+        def from_query_reply(
+            cls, text: str
+        ) -> SyringePumpController.ValvePosition | None:
             """Normalize a ``?6`` reply to the enum, or None if the pump has not been initialized.
 
             Pre-init the SY-01B returns the literal byte ``?`` for ``?6`` (LearnedPatterns E3),
@@ -124,7 +130,9 @@ class SyringePumpController:
         """Anything wrong at the serial / framing layer."""
 
     class TransportTimeout(TransportError):
-        def __init__(self, elapsed_s: float, frame_sent: bytes, partial: bytes) -> None:
+        def __init__(
+            self, elapsed_s: float, frame_sent: bytes, partial: bytes
+        ) -> None:
             super().__init__(
                 f"no ETX within {elapsed_s:.3f}s; sent={frame_sent!r} partial={partial!r}"
             )
@@ -194,7 +202,9 @@ class SyringePumpController:
 
     class LowSupplyVoltageError(DiagnosticError):
         def __init__(self, measured_v: float, min_v: float) -> None:
-            super().__init__(f"supply voltage {measured_v:.1f}V below floor {min_v:.1f}V")
+            super().__init__(
+                f"supply voltage {measured_v:.1f}V below floor {min_v:.1f}V"
+            )
             self.measured_v = measured_v
             self.min_v = min_v
 
@@ -256,14 +266,18 @@ class SyringePumpController:
             if self.baud not in (9600, 38400):
                 raise ValueError(f"baud must be 9600 or 38400, got {self.baud}")
             if self.reply_timeout_s <= 0:
-                raise ValueError(f"reply_timeout_s must be positive, got {self.reply_timeout_s}")
+                raise ValueError(
+                    f"reply_timeout_s must be positive, got {self.reply_timeout_s}"
+                )
 
         @classmethod
         def from_toml(cls, path: Path) -> SyringePumpController.Config:
             data = tomllib.loads(path.read_text(encoding="utf-8"))
             section = data.get("pump", data)
             kwargs: dict[str, object] = {
-                k: v for k, v in section.items() if k in cls.__dataclass_fields__
+                k: v
+                for k, v in section.items()
+                if k in cls.__dataclass_fields__
             }
             step = kwargs.get("step_mode")
             if isinstance(step, str):
@@ -274,7 +288,9 @@ class SyringePumpController:
             for upper, operand in self._STALL_CURRENT_TABLE:
                 if self.syringe_uL <= upper:
                     return operand
-            raise ValueError(f"no stall-current entry for syringe_uL={self.syringe_uL}")
+            raise ValueError(
+                f"no stall-current entry for syringe_uL={self.syringe_uL}"
+            )
 
     @dataclass(frozen=True, slots=True)
     class DiagnosticsReport:
@@ -375,8 +391,14 @@ class SyringePumpController:
         )
         port.dtr = False
         port.rts = False
-        logger.debug("opened %s @ %d 8N1 (DTR/RTS forced low)", cfg.port, cfg.baud)
-        return cls(transport=port, address=cfg.address, reply_timeout_s=cfg.reply_timeout_s)
+        logger.debug(
+            "opened %s @ %d 8N1 (DTR/RTS forced low)", cfg.port, cfg.baud
+        )
+        return cls(
+            transport=port,
+            address=cfg.address,
+            reply_timeout_s=cfg.reply_timeout_s,
+        )
 
     def __enter__(self) -> Self:
         return self
@@ -406,7 +428,9 @@ class SyringePumpController:
         return bytes([SyringePumpController._ADDR_FIRST + address - 1])
 
     @staticmethod
-    def build_command(address: int, cmds: str, *, execute: bool = False) -> bytes:
+    def build_command(
+        address: int, cmds: str, *, execute: bool = False
+    ) -> bytes:
         body = cmds.encode("ascii")
         if execute:
             body = body + b"R"
@@ -415,7 +439,9 @@ class SyringePumpController:
                 f"command body is {len(body)} bytes, "
                 f"exceeds {SyringePumpController.COMMAND_BUFFER_MAX}-byte pump buffer"
             )
-        return b"/" + SyringePumpController.format_address(address) + body + b"\r"
+        return (
+            b"/" + SyringePumpController.format_address(address) + body + b"\r"
+        )
 
     @staticmethod
     def parse_reply(frame: bytes) -> SyringePumpController.Reply:
@@ -429,7 +455,8 @@ class SyringePumpController:
             )
         if frame[1:2] != b"0":
             raise SyringePumpController.ProtocolError(
-                f"reply master address is {frame[1:2]!r}, expected b'0'", raw=frame
+                f"reply master address is {frame[1:2]!r}, expected b'0'",
+                raw=frame,
             )
         etx_index = frame.find(SyringePumpController._ETX, 3)
         if etx_index < 0:
@@ -451,7 +478,9 @@ class SyringePumpController:
     # --------------------------------------------------------- private I/O
     def _send_and_receive(self, frame: bytes) -> bytes:
         if not self._transport.is_open:
-            raise SyringePumpController.TransportClosed("serial port is not open")
+            raise SyringePumpController.TransportClosed(
+                "serial port is not open"
+            )
         logger.debug("→ %s", _hex_preview(frame))
         self._transport.reset_input_buffer()
         self._transport.write(frame)
@@ -470,7 +499,9 @@ class SyringePumpController:
                     # the start-of-frame on the first reply after open. Drop it.
                     frame_start = buf.find(b"/")
                     reply = (
-                        bytes(buf[frame_start:end]) if 0 <= frame_start < end else bytes(buf[:end])
+                        bytes(buf[frame_start:end])
+                        if 0 <= frame_start < end
+                        else bytes(buf[:end])
                     )
                     logger.debug("← %s", _hex_preview(reply))
                     return reply
@@ -487,7 +518,9 @@ class SyringePumpController:
 
     def _execute(self, cmds: str) -> SyringePumpController.Reply:
         """Send ``cmds`` with trailing R; raise a typed DeviceError on non-OK status."""
-        frame = SyringePumpController.build_command(self._address, cmds, execute=True)
+        frame = SyringePumpController.build_command(
+            self._address, cmds, execute=True
+        )
         raw = self._send_and_receive(frame)
         reply = SyringePumpController.parse_reply(raw)
         if reply.status.error is not SyringePumpController.ErrorCode.OK:
@@ -509,12 +542,14 @@ class SyringePumpController:
 
     def query_software_version(self) -> str:
         return self._decode_ascii(
-            self._query(SyringePumpController.CMD_QUERY_SOFTWARE_VERSION).data, "software version"
+            self._query(SyringePumpController.CMD_QUERY_SOFTWARE_VERSION).data,
+            "software version",
         )
 
     def query_serial_number(self) -> str:
         return self._decode_ascii(
-            self._query(SyringePumpController.CMD_QUERY_SERIAL_NUMBER).data, "serial number"
+            self._query(SyringePumpController.CMD_QUERY_SERIAL_NUMBER).data,
+            "serial number",
         )
 
     def query_config(self) -> str:
@@ -524,7 +559,8 @@ class SyringePumpController:
 
     def query_supply_voltage_v(self) -> float:
         text = self._decode_ascii(
-            self._query(SyringePumpController.CMD_QUERY_SUPPLY_VOLTAGE).data, "supply voltage"
+            self._query(SyringePumpController.CMD_QUERY_SUPPLY_VOLTAGE).data,
+            "supply voltage",
         )
         try:
             return int(text) / 10.0
@@ -535,12 +571,14 @@ class SyringePumpController:
 
     def query_valve_position(self) -> str:
         return self._decode_ascii(
-            self._query(SyringePumpController.CMD_QUERY_VALVE_POSITION).data, "valve position"
+            self._query(SyringePumpController.CMD_QUERY_VALVE_POSITION).data,
+            "valve position",
         )
 
     def query_plunger_position(self) -> int:
         text = self._decode_ascii(
-            self._query(SyringePumpController.CMD_QUERY_PLUNGER_POSITION).data, "plunger position"
+            self._query(SyringePumpController.CMD_QUERY_PLUNGER_POSITION).data,
+            "plunger position",
         )
         try:
             return int(text)
@@ -576,7 +614,9 @@ class SyringePumpController:
             status = self.query_status()
             if status.error is not SyringePumpController.ErrorCode.OK:
                 err_cls = SyringePumpController.device_error_for(status.error)
-                raise err_cls(status.error, SyringePumpController.CMD_QUERY_STATUS, b"")
+                raise err_cls(
+                    status.error, SyringePumpController.CMD_QUERY_STATUS, b""
+                )
             if not status.busy:
                 elapsed = time.monotonic() - start
                 if elapsed > 2.0:
@@ -585,7 +625,9 @@ class SyringePumpController:
             if time.monotonic() >= deadline:
                 raise SyringePumpController.TransportTimeout(
                     elapsed_s=timeout_s,
-                    frame_sent=SyringePumpController.CMD_QUERY_STATUS.encode("ascii"),
+                    frame_sent=SyringePumpController.CMD_QUERY_STATUS.encode(
+                        "ascii"
+                    ),
                     partial=bytes([status.raw]),
                 )
             time.sleep(poll_interval_s)
@@ -610,7 +652,9 @@ class SyringePumpController:
             if time.monotonic() >= deadline:
                 raise SyringePumpController.TransportTimeout(
                     elapsed_s=timeout_s,
-                    frame_sent=SyringePumpController.CMD_QUERY_VALVE_POSITION.encode("ascii"),
+                    frame_sent=SyringePumpController.CMD_QUERY_VALVE_POSITION.encode(
+                        "ascii"
+                    ),
                     partial=raw.encode("ascii"),
                 )
             time.sleep(poll_interval_s)
@@ -631,7 +675,9 @@ class SyringePumpController:
         if not 1 <= home_port <= 4:
             raise ValueError(f"home_port must be 1..4, got {home_port}")
         direction = 1 if direction_ccw else 0
-        self._execute(f"{SyringePumpController.CMD_VALVE_INIT}{home_port},{direction}")
+        self._execute(
+            f"{SyringePumpController.CMD_VALVE_INIT}{home_port},{direction}"
+        )
         # ?6 returns '?' until home completes; poll until it returns a real position.
         deadline = time.monotonic() + settle_timeout_s
         while True:
@@ -641,12 +687,16 @@ class SyringePumpController:
             if time.monotonic() >= deadline:
                 raise SyringePumpController.TransportTimeout(
                     elapsed_s=settle_timeout_s,
-                    frame_sent=SyringePumpController.CMD_QUERY_VALVE_POSITION.encode("ascii"),
+                    frame_sent=SyringePumpController.CMD_QUERY_VALVE_POSITION.encode(
+                        "ascii"
+                    ),
                     partial=raw.encode("ascii"),
                 )
             time.sleep(0.1)
 
-    def set_valve_position(self, position: SyringePumpController.ValvePosition | str) -> None:
+    def set_valve_position(
+        self, position: SyringePumpController.ValvePosition | str
+    ) -> None:
         """Move the valve to ``position`` (I/O/B/E mnemonic — for non-distribution valves).
 
         WARNING: most SY-01B pumps are configured for distribution valves at the factory
@@ -658,10 +708,14 @@ class SyringePumpController:
         Requires ``initialize_valve`` first; otherwise pump responds with error 7.
         """
         pos = (
-            SyringePumpController.ValvePosition(position) if isinstance(position, str) else position
+            SyringePumpController.ValvePosition(position)
+            if isinstance(position, str)
+            else position
         )
         if pos is SyringePumpController.ValvePosition.BYPASS:
-            logger.warning("valve set to BYPASS — subsequent plunger moves will fail with error 11")
+            logger.warning(
+                "valve set to BYPASS — subsequent plunger moves will fail with error 11"
+            )
         self._execute(pos.value)
         # Fallback: fixed sleep because target port for bare I/O depends on init config.
         time.sleep(0.7)
@@ -710,7 +764,9 @@ class SyringePumpController:
             SyringePumpController.ErrorCode.OK,
             SyringePumpController.ErrorCode.NOT_INITIALIZED,
         }:
-            logger.warning("pre-init status reports error %s", status.error.name)
+            logger.warning(
+                "pre-init status reports error %s", status.error.name
+            )
 
         try:
             software_version = self.query_software_version()
@@ -720,7 +776,9 @@ class SyringePumpController:
             valve_position = self.query_valve_position()
             plunger_steps = self.query_plunger_position()
         except SyringePumpController.TransportTimeout as exc:
-            raise SyringePumpController.DiagnosticTimeoutError(f"probe timed out: {exc}") from exc
+            raise SyringePumpController.DiagnosticTimeoutError(
+                f"probe timed out: {exc}"
+            ) from exc
         except SyringePumpController.ProtocolError as exc:
             raise SyringePumpController.DiagnosticGarbledReplyError(
                 f"probe reply malformed: {exc}"
@@ -728,12 +786,15 @@ class SyringePumpController:
 
         if supply_volts < SyringePumpController.MIN_SUPPLY_VOLTS:
             raise SyringePumpController.LowSupplyVoltageError(
-                measured_v=supply_volts, min_v=SyringePumpController.MIN_SUPPLY_VOLTS
+                measured_v=supply_volts,
+                min_v=SyringePumpController.MIN_SUPPLY_VOLTS,
             )
 
         warnings: list[str] = []
         if valve_position.upper() == "B":
-            warnings.append("valve is in bypass — plunger moves will fail with error 11")
+            warnings.append(
+                "valve is in bypass — plunger moves will fail with error 11"
+            )
 
         report = SyringePumpController.DiagnosticsReport(
             software_version=software_version,
@@ -745,5 +806,7 @@ class SyringePumpController:
             pre_init_status=status,
             warnings=tuple(warnings),
         )
-        logger.info("diagnostic probe complete: %s", report.render().splitlines()[0])
+        logger.info(
+            "diagnostic probe complete: %s", report.render().splitlines()[0]
+        )
         return report

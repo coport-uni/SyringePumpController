@@ -26,9 +26,15 @@ def _build_parser() -> argparse.ArgumentParser:
         type=Path,
         help="Path to a TOML config file. If omitted, pass --port and the other flags.",
     )
-    parser.add_argument("--port", help="Serial port path (e.g. /dev/ttyUSB1). Overrides config.")
-    parser.add_argument("--address", type=int, help="Pump address 1..15. Overrides config.")
-    parser.add_argument("--baud", type=int, help="Baud rate (9600 or 38400). Overrides config.")
+    parser.add_argument(
+        "--port", help="Serial port path (e.g. /dev/ttyUSB1). Overrides config."
+    )
+    parser.add_argument(
+        "--address", type=int, help="Pump address 1..15. Overrides config."
+    )
+    parser.add_argument(
+        "--baud", type=int, help="Baud rate (9600 or 38400). Overrides config."
+    )
     parser.add_argument(
         "--syringe-uL",
         type=int,

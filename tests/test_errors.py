@@ -11,7 +11,10 @@ class TestDeviceErrorMapping:
     @pytest.mark.parametrize(
         ("code", "cls"),
         [
-            (SyringePumpController.ErrorCode.INIT_FAILED, SyringePumpController.InitFailedError),
+            (
+                SyringePumpController.ErrorCode.INIT_FAILED,
+                SyringePumpController.InitFailedError,
+            ),
             (
                 SyringePumpController.ErrorCode.INVALID_COMMAND,
                 SyringePumpController.InvalidCommandError,
@@ -43,13 +46,17 @@ class TestDeviceErrorMapping:
         ],
     )
     def test_known_codes_map_to_specific_class(
-        self, code: SyringePumpController.ErrorCode, cls: type[SyringePumpController.DeviceError]
+        self,
+        code: SyringePumpController.ErrorCode,
+        cls: type[SyringePumpController.DeviceError],
     ) -> None:
         assert SyringePumpController.device_error_for(code) is cls
 
     def test_unknown_code_falls_back_to_base(self) -> None:
         assert (
-            SyringePumpController.device_error_for(SyringePumpController.ErrorCode.UNKNOWN)
+            SyringePumpController.device_error_for(
+                SyringePumpController.ErrorCode.UNKNOWN
+            )
             is SyringePumpController.DeviceError
         )
 
@@ -72,7 +79,9 @@ class TestDeviceErrorMessage:
             command_sent="A6000R",
             raw_reply=b"/0I\x03",
         )
-        assert exc.error_code is SyringePumpController.ErrorCode.PLUNGER_OVERLOAD
+        assert (
+            exc.error_code is SyringePumpController.ErrorCode.PLUNGER_OVERLOAD
+        )
         assert exc.command_sent == "A6000R"
         assert exc.raw_reply == b"/0I\x03"
 
@@ -99,11 +108,14 @@ class TestErrorCodeFromByte:
 
     def test_unknown_nibble_maps_to_unknown(self) -> None:
         assert (
-            SyringePumpController.ErrorCode.from_byte(5) is SyringePumpController.ErrorCode.UNKNOWN
+            SyringePumpController.ErrorCode.from_byte(5)
+            is SyringePumpController.ErrorCode.UNKNOWN
         )
         assert (
-            SyringePumpController.ErrorCode.from_byte(6) is SyringePumpController.ErrorCode.UNKNOWN
+            SyringePumpController.ErrorCode.from_byte(6)
+            is SyringePumpController.ErrorCode.UNKNOWN
         )
         assert (
-            SyringePumpController.ErrorCode.from_byte(8) is SyringePumpController.ErrorCode.UNKNOWN
+            SyringePumpController.ErrorCode.from_byte(8)
+            is SyringePumpController.ErrorCode.UNKNOWN
         )

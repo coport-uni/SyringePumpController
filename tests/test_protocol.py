@@ -39,7 +39,10 @@ class TestBuildCommand:
         assert b"R" not in frame[3:-1]
 
     def test_execute_adds_R(self) -> None:
-        assert SyringePumpController.build_command(1, "A100", execute=True) == b"/1A100R\r"
+        assert (
+            SyringePumpController.build_command(1, "A100", execute=True)
+            == b"/1A100R\r"
+        )
 
     def test_addr_two(self) -> None:
         assert SyringePumpController.build_command(2, "Q") == b"/2Q\r"
@@ -62,7 +65,10 @@ class TestBuildCommand:
         ],
     )
     def test_valve_motion_frames(self, cmds: str, expected: bytes) -> None:
-        assert SyringePumpController.build_command(1, cmds, execute=True) == expected
+        assert (
+            SyringePumpController.build_command(1, cmds, execute=True)
+            == expected
+        )
 
 
 def _frame(status_byte: int, data: bytes = b"") -> bytes:
@@ -98,7 +104,9 @@ class TestStatusByte:
 
     @pytest.mark.parametrize("bad", [0x00, 0x10, 0x80, 0xFF])
     def test_missing_fixed_frame_bit_raises(self, bad: int) -> None:
-        with pytest.raises(SyringePumpController.ProtocolError, match="fixed bit-6"):
+        with pytest.raises(
+            SyringePumpController.ProtocolError, match="fixed bit-6"
+        ):
             SyringePumpController.StatusByte.decode(bad)
 
 

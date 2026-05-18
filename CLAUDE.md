@@ -2,6 +2,19 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Authority order
+
+This project inherits from [coport-uni/CommonClaude/CLAUDE.md](https://github.com/coport-uni/CommonClaude/blob/main/CLAUDE.md). **CommonClaude takes precedence** over anything in this file when the two conflict — the inverse of CommonClaude's own §1 "Rule Priority". This override was set by the project owner on 2026-05-18 (see ToDo.md §15 and issue #1).
+
+Operational implications, in order of priority:
+
+1. **CommonClaude/CLAUDE.md** — read it first. Every rule in §1–§10 applies here unless explicitly waived below.
+2. **CommonClaude/LearnedPatterns.md format** — new entries use Problem / Cause / Fix / Rule per §10. Older entries (G1–G6, Q1, W1–W6, E1–E4) are grandfathered per the §10 "bootstrap no longer applies" exit rule.
+3. **Hardware-specific rules in this file** (sections below) — the SY-01B protocol, build/lint/test commands, and commit boundaries. These do not conflict with CommonClaude; they specialize it.
+
+Explicit project waivers from CommonClaude (must be cited when used):
+- *(none right now — full compliance pending closure of issue #1)*
+
 ## Repository status
 
 This repo is a **greenfield project** — no source code, build system, or commits exist yet. The working tree currently contains only the hardware/protocol manuals for the device being controlled. The first source code committed should determine language, build tool, and layout.
@@ -109,4 +122,4 @@ Coverage targets: 90 % on `src/sy01b/` excluding `transport.py`'s real-serial pa
 
 - **Planning trio commit:** DESIGN.md, ToDo.md, LearnedPatterns.md.
 - **Read-only API commit:** scaffolding + everything needed to open a port, run diagnose, retrieve software version (`?23`) and serial number (`?202`).
-- **Valve motion commit:** non-distribution valve API (`initialize_valve`, `set_valve_position`, `wait_until_ready`) targeting the MCC-4 dual-selection valve. `examples/valve_toggle.py` is the bench-verification script that drives real toggling against `/dev/ttyUSB1`. Plunger motion (`initialize`, `aspirate_uL`, `dispense_uL`, `abort`, `move_to_steps`, `set_step_mode`, `set_stall_current`) is intentionally still absent and pinned by `TestNoPlungerMotionExposed` in `tests/test_plunger_motion_absent.py`.
+- **Valve motion commit:** non-distribution valve API (`initialize_valve`, `set_valve_position`, `wait_until_ready`) targeting the MCC-4 dual-selection valve. `claude_test/valve_toggle.py` is the bench-verification script that drives real toggling against `/dev/ttyUSB1` (per CommonClaude §3, bench/debug scripts live in `claude_test/`, indexed in `claude_test/README.md`). Plunger motion (`initialize`, `aspirate_uL`, `dispense_uL`, `abort`, `move_to_steps`, `set_step_mode`, `set_stall_current`) is intentionally still absent and pinned by `TestNoPlungerMotionExposed` in `tests/test_plunger_motion_absent.py`.

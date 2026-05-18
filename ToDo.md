@@ -88,16 +88,16 @@ Implementation checklist for the SY-01B controller. Derived from [DESIGN.md](DES
 - [x] `test_cli.py`: argument parsing + happy/failure exits with stubbed Pump
 - [x] `test_errors.py`: device_error_for mapping + exception field carriage
 - [x] Coverage gate at 90 % on `src/sy01b/` excluding `transport.py` real-serial paths (current: ~95 %)
-- [ ] `examples/hil_smoke.md`: manual HIL checklist — **read-only only** (firmware, serial number, supply voltage, status, valve, plunger position). No `R`, no init, no moves.
-- [ ] `examples/hil_identity.py`: read-only identity probe script that drives the HIL checklist programmatically and prints a one-block summary
-- [x] `examples/valve_toggle.py`: bench script that toggles MCC-4 valve between INPUT and OUTPUT, verifying each move via `?6`. Plunger never moved.
+- [ ] `claude_test/hil_smoke.md`: manual HIL checklist — **read-only only** (firmware, serial number, supply voltage, status, valve, plunger position). No `R`, no init, no moves.
+- [ ] `claude_test/hil_identity.py`: read-only identity probe script that drives the HIL checklist programmatically and prints a one-block summary
+- [x] `claude_test/valve_toggle.py`: bench script that toggles MCC-4 valve between INPUT and OUTPUT, verifying each move via `?6`. Plunger never moved.
 
 ## 11. Logging
 
 - [x] `_logging.py`: `logger = logging.getLogger("sy01b")` + `hex_preview()` helper, no handler registration at import
 - [x] Frame send/receive at DEBUG with hex preview
 - [x] `wait_until_ready` logs at INFO if elapsed > 2 s (shipped with valve motion).
-- [ ] Document `LOG=DEBUG sy01b-diagnose ...` recipe in `examples/repl_session.md`
+- [ ] Document `LOG=DEBUG sy01b-diagnose ...` recipe in `claude_test/repl_session.md`
 
 ## 13. Documentation hygiene (when code lands)
 
@@ -115,3 +115,15 @@ Implementation checklist for the SY-01B controller. Derived from [DESIGN.md](DES
   - `Transport` Protocol nested in the class; `__init__` accepts `SyringePumpController.Transport` instead of concrete `serial.Serial`. Private attribute renamed `_serial → _transport`. Runtime behavior unchanged; `serial.Serial` satisfies the Protocol structurally and `serial.serial_for_url('loop://')` is now type-compatible for future testing.
 - [ ] **Path C** (defer): re-introduce concrete `_DTSerialTransport` nested class + restore fake-pump unit tests. Revisit only if motion-method iteration cycles prove impractical against real hardware.
 - [ ] **Path D** (avoid): full un-consolidation back to 6 modules. Only if requirements double.
+
+## 15. CommonClaude reconciliation (2026-05-18)
+
+User direction: inherit from [coport-uni/CommonClaude](https://github.com/coport-uni/CommonClaude) and let CommonClaude take precedence over project-specific conventions when they conflict (inverts CommonClaude §1).
+
+- [ ] Project [CLAUDE.md](CLAUDE.md): top-level statement that the project inherits CommonClaude/CLAUDE.md and CommonClaude wins in conflicts.
+- [ ] [pyproject.toml](pyproject.toml): `line-length = 100` → `80` (CommonClaude §6).
+- [ ] `examples/` → `claude_test/` rename with index README per CommonClaude §3. Update references in CLAUDE.md, ToDo.md, LearnedPatterns.md.
+- [ ] Reformat new [LearnedPatterns.md](LearnedPatterns.md) entries E5/E6 from `Note/Rule` to `Problem/Cause/Fix/Rule` per CommonClaude §10. Provenance changed to `(from ToDo#6)`.
+- [ ] Run `ruff format` to reflow all code to 80 cols; resolve any remaining `ruff check` / `mypy` / `pytest` failures.
+- [ ] Create GitHub issue documenting this reconciliation per CommonClaude §4 (mandatory).
+- [ ] Going forward: every new task gets a `ToDo.md` append + `gh issue create` BEFORE work begins. Older LP entries (G1–G6, Q1, W1–W6, E1–E4) keep their existing format per CommonClaude §10 "Once the file exists, this bootstrap procedure no longer applies".

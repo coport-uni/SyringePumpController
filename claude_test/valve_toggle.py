@@ -10,9 +10,9 @@ attached MCC-4's physical 2-state behavior. The MCC-4 dual-selection states (C-1
 C-3 connected) correspond to distribution ports 1 and 3 respectively on this firmware.
 
 Usage:
-    /opt/conda/envs/syringe/bin/python examples/valve_toggle.py
-    /opt/conda/envs/syringe/bin/python examples/valve_toggle.py --cycles 5 --delay-s 1.0 -v
-    /opt/conda/envs/syringe/bin/python examples/valve_toggle.py --port-a 1 --port-b 3
+    /opt/conda/envs/syringe/bin/python claude_test/valve_toggle.py
+    /opt/conda/envs/syringe/bin/python claude_test/valve_toggle.py --cycles 5 --delay-s 1.0 -v
+    /opt/conda/envs/syringe/bin/python claude_test/valve_toggle.py --port-a 1 --port-b 3
 
 Exit codes:
     0 — all cycles verified
@@ -31,9 +31,14 @@ from sy01b import SyringePumpController
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="valve_toggle", description=__doc__.splitlines()[0])
+    parser = argparse.ArgumentParser(
+        prog="valve_toggle", description=__doc__.splitlines()[0]
+    )
     parser.add_argument(
-        "--cycles", type=int, default=10, help="Number of A→B→A cycles (default 10)."
+        "--cycles",
+        type=int,
+        default=10,
+        help="Number of A→B→A cycles (default 10).",
     )
     parser.add_argument(
         "--delay-s",
@@ -43,16 +48,28 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Seconds to sleep between moves (default 0.5).",
     )
     parser.add_argument(
-        "--port-a", type=int, default=1, dest="port_a", help="First toggle port (default 1)."
+        "--port-a",
+        type=int,
+        default=1,
+        dest="port_a",
+        help="First toggle port (default 1).",
     )
     parser.add_argument(
-        "--port-b", type=int, default=3, dest="port_b", help="Second toggle port (default 3)."
+        "--port-b",
+        type=int,
+        default=3,
+        dest="port_b",
+        help="Second toggle port (default 3).",
     )
     parser.add_argument("--port", default="/dev/ttyUSB1")
     parser.add_argument("--address", type=int, default=1)
     parser.add_argument("--baud", type=int, default=9600)
-    parser.add_argument("--syringe-uL", type=int, dest="syringe_uL", default=125)
-    parser.add_argument("--reply-timeout-s", type=float, dest="reply_timeout_s", default=2.0)
+    parser.add_argument(
+        "--syringe-uL", type=int, dest="syringe_uL", default=125
+    )
+    parser.add_argument(
+        "--reply-timeout-s", type=float, dest="reply_timeout_s", default=2.0
+    )
     parser.add_argument("-v", "--verbose", action="store_true")
     return parser
 
@@ -80,10 +97,16 @@ def main(argv: list[str] | None = None) -> int:
         report = pump.diagnose()
         print(report.render(), file=sys.stderr)
         if not report.ok_to_initialize:
-            print("diagnose() reports the pump is NOT safe to drive — aborting.", file=sys.stderr)
+            print(
+                "diagnose() reports the pump is NOT safe to drive — aborting.",
+                file=sys.stderr,
+            )
             return 2
 
-        print(f"initializing valve (home_port={args.port_a}, CW) ...", file=sys.stderr)
+        print(
+            f"initializing valve (home_port={args.port_a}, CW) ...",
+            file=sys.stderr,
+        )
         pump.initialize_valve(home_port=args.port_a, direction_ccw=False)
         start_raw = pump.query_valve_position()
         print(f"post-init valve position: {start_raw!r}", file=sys.stderr)

@@ -26,7 +26,9 @@ class TestValidation:
         with pytest.raises(ValueError, match="syringe_uL"):
             SyringePumpController.Config(port="x", syringe_uL=750)
 
-    @pytest.mark.parametrize("syr", sorted(SyringePumpController.ALLOWED_SYRINGES_UL))
+    @pytest.mark.parametrize(
+        "syr", sorted(SyringePumpController.ALLOWED_SYRINGES_UL)
+    )
     def test_every_allowed_syringe_is_acceptable(self, syr: int) -> None:
         cfg = SyringePumpController.Config(port="x", syringe_uL=syr)
         assert cfg.syringe_uL == syr
@@ -93,6 +95,9 @@ class TestTomlLoading:
 
     def test_ignores_unknown_keys(self, tmp_path: Path) -> None:
         toml = tmp_path / "pump.toml"
-        toml.write_text('[pump]\nport = "/dev/ttyUSB0"\nfuture_field = 42\n', encoding="utf-8")
+        toml.write_text(
+            '[pump]\nport = "/dev/ttyUSB0"\nfuture_field = 42\n',
+            encoding="utf-8",
+        )
         cfg = SyringePumpController.Config.from_toml(toml)
         assert cfg.port == "/dev/ttyUSB0"
