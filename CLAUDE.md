@@ -13,11 +13,11 @@ Operational implications, in order of priority:
 3. **Hardware-specific rules in this file** (sections below) — the SY-01B protocol, build/lint/test commands, and commit boundaries. These do not conflict with CommonClaude; they specialize it.
 
 Explicit project waivers from CommonClaude (must be cited when used):
-- *(none right now — full compliance pending closure of issue #1)*
+- *(none — full compliance with CommonClaude as of issue #1, commit `898ecf3`)*
 
 ## Repository status
 
-This repo is a **greenfield project** — no source code, build system, or commits exist yet. The working tree currently contains only the hardware/protocol manuals for the device being controlled. The first source code committed should determine language, build tool, and layout.
+Active development (`0.2.0.dev0`, pre-alpha). The driver lives at [src/sy01b/](src/sy01b/) as a single `SyringePumpController` class (consolidation §14); read-only commissioning + valve motion + plunger init + step moves are shipped and HIL-verified on `/dev/ttyUSB1`. Production unit tests live in [tests/](tests/) (125 tests, ~0.1 s); bench scripts that drive real hardware live in [claude_test/](claude_test/) per CommonClaude §3. See [README.md](README.md) for the current API surface, [DESIGN.md](DESIGN.md) for the architecture, and [ToDo.md](ToDo.md) for outstanding work.
 
 ## What this project will control
 
@@ -106,20 +106,22 @@ Stack: **Python ≥ 3.12**, **pyserial 3.x**, **DT ASCII protocol** (locked — 
 python3 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
 
-.venv/bin/ruff check src tests          # lint
-.venv/bin/ruff format --check src tests # format check (no rewrites)
-.venv/bin/mypy                          # strict types on src/sy01b
-.venv/bin/pytest                        # full suite
-.venv/bin/pytest tests/test_identity.py::TestIndividualIdentityProbes::test_serial_number_round_trips  # single test
-.venv/bin/pytest --cov=sy01b --cov-report=term-missing                                                  # with coverage
+.venv/bin/ruff check src tests claude_test main.py          # lint
+.venv/bin/ruff format --check src tests claude_test main.py # format check
+.venv/bin/mypy                                              # strict types on src/sy01b
+.venv/bin/pytest                                            # full suite (125 tests)
+.venv/bin/pytest tests/test_protocol.py::TestBuildCommand::test_plunger_init_frames  # single test
+.venv/bin/pytest --cov=sy01b --cov-report=term-missing      # with coverage
 ```
 
 The CLI is installed as `sy01b-diagnose` — a read-only commissioning probe. Run with `--help` for usage. It **never** sends `R`, `Z`, `Y`, or `W` (enforced by the test suite, not just convention).
 
-Coverage targets: 90 % on `src/sy01b/` excluding `transport.py`'s real-serial paths (HIL only). Current: 87 % overall, ~95 % excluding transport.
+Coverage: pure-logic paths in `src/sy01b/` (frame builder, parser, status decode, config, errors) sit at ~95 %. Motion methods and the I/O loop in `_send_and_receive` are intentionally **not** unit-tested — they are HIL-verified via [claude_test/](claude_test/) (LearnedPatterns W5). Overall raw coverage is therefore ~58 % post-consolidation (§14 removed the fake-pump layer; Path C tracks a possible re-introduction).
 
 ## Commit boundaries seen so far
 
 - **Planning trio commit:** DESIGN.md, ToDo.md, LearnedPatterns.md.
 - **Read-only API commit:** scaffolding + everything needed to open a port, run diagnose, retrieve software version (`?23`) and serial number (`?202`).
-- **Valve motion commit:** non-distribution valve API (`initialize_valve`, `set_valve_position`, `wait_until_ready`) targeting the MCC-4 dual-selection valve. `claude_test/valve_toggle.py` is the bench-verification script that drives real toggling against `/dev/ttyUSB1` (per CommonClaude §3, bench/debug scripts live in `claude_test/`, indexed in `claude_test/README.md`). Plunger motion (`initialize`, `aspirate_uL`, `dispense_uL`, `abort`, `move_to_steps`, `set_step_mode`, `set_stall_current`) is intentionally still absent and pinned by `TestNoPlungerMotionExposed` in `tests/test_plunger_motion_absent.py`.
+- **Valve motion commit** (`2cabf13`): non-distribution + distribution valve API (`initialize_valve`, `set_valve_position`, `move_valve_to_port`, `wait_until_ready`) targeting the MCC-4 dual-selection valve. `claude_test/valve_toggle.py` drives real port-to-port toggling against `/dev/ttyUSB1` (per CommonClaude §3, bench/debug scripts live in `claude_test/`, indexed in `claude_test/README.md`).
+- **CommonClaude reconciliation commit** (`898ecf3`, closes #1): project subordinates itself to [coport-uni/CommonClaude](https://github.com/coport-uni/CommonClaude); `examples/` → `claude_test/` rename; line-length 100 → 80; LearnedPatterns E5/E6 reformatted to Problem/Cause/Fix/Rule.
+- **Plunger init + step move commit** (`5d40437` + `8f7ac72`, closes #2): `set_stall_current_for_syringe` (`U200,<n>R` EEPROM write), `initialize` (`Z<force>R` / `Y<force>R`, polls `?6 != "?"`), `move_to_steps` (`A<n>R`, polls `?`). HIL-verified end-to-end at force=2 over a 125 µL syringe; capacity sweep across 25/50/100 µL confirmed the U200 operand table. `main.py` rewritten as an end-to-end tutorial covering every shipped public method; `claude_test/syringe_init.py` and `claude_test/plunger_cycle.py` cover init and max/mid/min cycling. Remaining plunger-side surface — `aspirate_uL` / `dispense_uL` / `abort` + `requires_reinit` / `set_step_mode` / `raw()` — is intentionally absent, pinned by `TestNoPlungerMotionExposed` in `tests/test_plunger_motion_absent.py`, tracked in [#3](https://github.com/coport-uni/SyringePumpController/issues/3).

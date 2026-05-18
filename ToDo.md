@@ -120,13 +120,13 @@ Implementation checklist for the SY-01B controller. Derived from [DESIGN.md](DES
 
 User direction: inherit from [coport-uni/CommonClaude](https://github.com/coport-uni/CommonClaude) and let CommonClaude take precedence over project-specific conventions when they conflict (inverts CommonClaude §1).
 
-- [ ] Project [CLAUDE.md](CLAUDE.md): top-level statement that the project inherits CommonClaude/CLAUDE.md and CommonClaude wins in conflicts.
-- [ ] [pyproject.toml](pyproject.toml): `line-length = 100` → `80` (CommonClaude §6).
-- [ ] `examples/` → `claude_test/` rename with index README per CommonClaude §3. Update references in CLAUDE.md, ToDo.md, LearnedPatterns.md.
-- [ ] Reformat new [LearnedPatterns.md](LearnedPatterns.md) entries E5/E6 from `Note/Rule` to `Problem/Cause/Fix/Rule` per CommonClaude §10. Provenance changed to `(from ToDo#6)`.
-- [ ] Run `ruff format` to reflow all code to 80 cols; resolve any remaining `ruff check` / `mypy` / `pytest` failures.
-- [ ] Create GitHub issue documenting this reconciliation per CommonClaude §4 (mandatory).
-- [ ] Going forward: every new task gets a `ToDo.md` append + `gh issue create` BEFORE work begins. Older LP entries (G1–G6, Q1, W1–W6, E1–E4) keep their existing format per CommonClaude §10 "Once the file exists, this bootstrap procedure no longer applies".
+- [x] Project [CLAUDE.md](CLAUDE.md): top-level statement that the project inherits CommonClaude/CLAUDE.md and CommonClaude wins in conflicts.
+- [x] [pyproject.toml](pyproject.toml): `line-length = 100` → `80` (CommonClaude §6).
+- [x] `examples/` → `claude_test/` rename with index README per CommonClaude §3. Update references in CLAUDE.md, ToDo.md, LearnedPatterns.md.
+- [x] Reformat new [LearnedPatterns.md](LearnedPatterns.md) entries E5/E6 from `Note/Rule` to `Problem/Cause/Fix/Rule` per CommonClaude §10. Provenance changed to `(from ToDo#6)`.
+- [x] Run `ruff format` to reflow all code to 80 cols; resolve any remaining `ruff check` / `mypy` / `pytest` failures.
+- [x] Create GitHub issue documenting this reconciliation per CommonClaude §4 (mandatory). Closed as [#1](https://github.com/coport-uni/SyringePumpController/issues/1).
+- [x] Going forward: every new task gets a `ToDo.md` append + `gh issue create` BEFORE work begins. Older LP entries (G1–G6, Q1, W1–W6, E1–E4) keep their existing format per CommonClaude §10 "Once the file exists, this bootstrap procedure no longer applies". Adopted: §16 / #2 / #3 / #4 / #5 all follow this flow.
 
 ## 16. Plunger initialization (2026-05-18, #2)
 
