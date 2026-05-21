@@ -42,24 +42,6 @@ class TestValidation:
             SyringePumpController.Config(port="x", reply_timeout_s=0)
 
 
-class TestStallCurrentOperand:
-    """Operand table from CLAUDE.md: 25 uL -> 4, 50..1250 -> 5, 2500/5000 -> 6."""
-
-    @pytest.mark.parametrize(
-        ("syr", "operand"),
-        [
-            (25, 4),
-            (50, 5),
-            (1250, 5),
-            (2500, 6),
-            (5000, 6),
-        ],
-    )
-    def test_table(self, syr: int, operand: int) -> None:
-        cfg = SyringePumpController.Config(port="x", syringe_uL=syr)
-        assert cfg.stall_current_operand() == operand
-
-
 class TestStepMode:
     def test_normal_stroke(self) -> None:
         assert SyringePumpController.StepMode.NORMAL.full_stroke_steps == 12_000

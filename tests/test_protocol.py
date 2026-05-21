@@ -73,9 +73,6 @@ class TestBuildCommand:
     @pytest.mark.parametrize(
         ("cmds", "expected"),
         [
-            ("U200,4", b"/1U200,4R\r"),
-            ("U200,5", b"/1U200,5R\r"),
-            ("U200,6", b"/1U200,6R\r"),
             ("Z0", b"/1Z0R\r"),
             ("Z2", b"/1Z2R\r"),
             ("Y0", b"/1Y0R\r"),

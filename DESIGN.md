@@ -115,7 +115,6 @@ from sy01b import Pump, PumpConfig, StepMode
 cfg = PumpConfig(port="/dev/ttyUSB0", address=1, syringe_uL=5000, step_mode=StepMode.NORMAL)
 with Pump.open(cfg) as pump:
     pump.initialize()                     # /1ZR  + wait until ready
-    pump.set_stall_current_for_syringe()  # /1U200,6R for 5 mL, derived from cfg.syringe_uL
     pump.aspirate_uL(2500)                # I, A<steps>, R  (computed from syringe size + step mode)
     pump.dispense_uL(2500)                # O, A0,        R
 ```

@@ -10,7 +10,7 @@ Pre-alpha (`0.2.0.dev0`). The following surfaces are shipped and HIL-verified on
 
 - **Read-only commissioning** — `diagnose()`, identity / status / voltage / valve / plunger queries, `sy01b-diagnose` CLI.
 - **Valve motion** — `initialize_valve`, `set_valve_position`, `move_valve_to_port`.
-- **Plunger initialization** — `set_stall_current_for_syringe` (EEPROM stall current), `initialize` (`Z<force>R` / `Y<force>R`, polls `?6 != "?"` for completion).
+- **Plunger initialization** — `initialize` (`Z<force>R` / `Y<force>R`, polls `?6 != "?"` for completion). Stall current (`U200,n`) must be set out-of-band before connecting this driver — see [CLAUDE.md](CLAUDE.md) "Stall current" section.
 - **Plunger absolute moves** — `move_to_steps` (`A<n>R`, polls `?` until target).
 
 Volume-based aspirate / dispense, `abort` + `requires_reinit` latch, and `set_step_mode` remain intentionally absent (tracked in [#3](https://github.com/coport-uni/SyringePumpController/issues/3)). The test suite pins this boundary via `TestNoPlungerMotionExposed` / `TestPlungerInitPresent` in [tests/test_plunger_motion_absent.py](tests/test_plunger_motion_absent.py).
@@ -24,7 +24,7 @@ Before plugging anything in:
 - **Power:** 24 V DC, ≥ 1.5 A on the DB-15 header. Never connect or disconnect the pump while powered.
 - **Serial:** default 9600 bps, 8N1. The EUSB-30 dongle enumerates as `/dev/ttyUSB0` or `/dev/ttyUSB1` on Linux.
 - **Address switch:** 16-position rotary (0–F) on the pump body sets the bus ID — position 0 → address `1`, position 1 → `2`, …, position E → `15`. Must be set **before** power-on. Position F is self-test.
-- **Syringe size:** declare the installed syringe volume (µL) in code. It also selects the stall-current operand (see the table in [CLAUDE.md](CLAUDE.md)).
+- **Syringe size:** declare the installed syringe volume (µL) in code (`Config.syringe_uL`). Stall current must already match this size at the firmware level — set it once via a terminal session with `/1U200,<n>R` per the table in [CLAUDE.md](CLAUDE.md) before running this driver.
 - **Diagnose first, move second.** The `diagnose()` API and `sy01b-diagnose` CLI never emit `R`/`Z`/`Y`/`W` — they verify wiring, address, voltage, and identity without moving anything. Run this before any motion code.
 
 ## Communication protocol (DT ASCII)
@@ -104,7 +104,7 @@ Each code maps to a subclass of `SyringePumpController.Error` (`InitFailedError`
 | `/1*\r` | Supply voltage × 10 | `/0` + status + `240` + ETX | `240` → 24.0 V. Diagnose fails below 22 V. |
 | `/1?6\r` | Valve position | `/0` + status + `I`/`O`/digit + ETX | Pre-init returns the literal byte `?` (LearnedPatterns E3). On a 4-way-configured pump, post-init returns ASCII digit `1..4`. |
 | `/1?\r` | Plunger position (steps) | `/0` + status + integer + ETX | 0..12000 in `N0`. |
-| `/1U200,5R\r` | Set stall current for 50 µL – 1.25 mL syringe | `/0` + status + ETX | EEPROM-persistent; effective on the next power-up. |
+| `/1U200,5R\r` | Set stall current for 50 µL – 1.25 mL syringe | `/0` + status + ETX | EEPROM-persistent; effective on the next power-up. Set out-of-band before using this driver — not exposed as a public method. |
 | `/1Z2R\r` | **Initialize** (CW, third force) | `/0` + status + ETX | Canonical first motion. After `Z`, poll `?6` until it stops returning `?` (LearnedPatterns E7). |
 | `/1A6000R\r` | Move plunger to absolute step 6000 | `/0` + status + ETX | Post-init top speed is 4000 pps → full stroke ≈ 3 s (LearnedPatterns E8). |
 | `/1I3R\r` | Move valve CW to distribution port 3 | `/0` + status + ETX | After move, poll `?6` until it equals `"3"`. |
@@ -170,7 +170,7 @@ with SyringePumpController.open(cfg) as pump:
     print(report.render())
 ```
 
-[main.py](main.py) is an end-to-end tutorial that exercises every shipped public method on real hardware (diagnose → identity queries → stall current → `initialize` → `move_to_steps` max/mid/min → `move_valve_to_port` 1↔3↔1). Narrower per-feature bench scripts live in [claude_test/](claude_test/) (see [Bench scripts](#bench-scripts)).
+[main.py](main.py) is an end-to-end tutorial that exercises every shipped public method on real hardware (diagnose → identity queries → `initialize` → `move_to_steps` max/mid/min → `move_valve_to_port` 1↔3↔1). Narrower per-feature bench scripts live in [claude_test/](claude_test/) (see [Bench scripts](#bench-scripts)).
 
 ## When diagnose fails
 
@@ -192,7 +192,7 @@ Everything is reachable from a single import: `from sy01b import SyringePumpCont
 - Transport- and diagnostic-layer exceptions (`TransportError`, `ProtocolError`, `DiagnosticError`).
 
 **Configuration**
-- `SyringePumpController.Config` — frozen dataclass with TOML loader, syringe-size → stall-current lookup, and step-mode → full-stroke-step lookup.
+- `SyringePumpController.Config` — frozen dataclass with TOML loader and step-mode → full-stroke-step lookup.
 
 **Read-only queries** (no `R` ever appended)
 - `query_status` (`Q`), `query_software_version` (`?23`), `query_serial_number` (`?202`), `query_config` (`?76`), `query_supply_voltage_v` (`*`), `query_valve_position` (`?6`), `query_plunger_position` (`?`).
@@ -204,8 +204,7 @@ Everything is reachable from a single import: `from sy01b import SyringePumpCont
 - `move_valve_to_port(port, direction_ccw)` — distribution CW (`I<n>R`) / CCW (`O<n>R`), polls `?6` until target.
 
 **Plunger initialization & step moves**
-- `set_stall_current_for_syringe()` — `U200,<n>R`, operand derived from `Config.syringe_uL` (EEPROM-persistent).
-- `initialize(*, force, ccw, settle_timeout_s)` — `Z<force>R` / `Y<force>R`, polls `?6` until non-`?` (LearnedPatterns E7).
+- `initialize(*, force, ccw, settle_timeout_s)` — `Z<force>R` / `Y<force>R`, polls `?6` until non-`?` (LearnedPatterns E7). Stall current must already be set in EEPROM for the installed syringe — see [CLAUDE.md](CLAUDE.md) "Stall current" section.
 - `move_to_steps(steps, *, settle_timeout_s, poll_interval_s)` — `A<n>R`, polls `?` until target matches.
 
 **Other**
@@ -229,7 +228,6 @@ Read-only HIL identity probes (`claude_test/hil_smoke.md`, `hil_identity.py`) ar
 | Script | Purpose |
 |---|---|
 | [valve_toggle.py](claude_test/valve_toggle.py) | Toggle a distribution valve between two ports (default 1 ↔ 3) and verify each move via `?6`. Plunger never moves. |
-| [syringe_init.py](claude_test/syringe_init.py) | `diagnose()` → `set_stall_current_for_syringe()` → `initialize(force=2)`. Logs pre/post-init `?` and `?6` plus elapsed time. |
 | [plunger_cycle.py](claude_test/plunger_cycle.py) | After init, cycle the plunger through max → mid → min absolute positions for N cycles, verifying each move. |
 
 ## Develop

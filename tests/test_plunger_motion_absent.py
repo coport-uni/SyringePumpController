@@ -1,11 +1,11 @@
 """Defensive test guarding the milestone boundary (LearnedPatterns W4).
 
-Plunger initialization (``initialize``, ``set_stall_current_for_syringe``)
-and absolute step-based motion (``move_to_steps``) have shipped. Volume-
-based aspirate/dispense, abort, and step-mode reconfiguration are still
-intentionally absent — if a future commit accidentally adds one before
-its HIL plan is ready, this test fails loudly rather than letting a
-half-finished method ship.
+Plunger initialization (``initialize``) and absolute step-based motion
+(``move_to_steps``) have shipped. Stall-current commissioning
+(``set_stall_current_for_syringe``), volume-based aspirate/dispense,
+abort, and step-mode reconfiguration are intentionally absent — if a
+future commit accidentally adds one before its HIL plan is ready, this
+test fails loudly rather than letting a half-finished method ship.
 """
 
 from __future__ import annotations
@@ -23,6 +23,7 @@ class TestNoPlungerMotionExposed:
             "dispense_uL",
             "abort",
             "set_step_mode",
+            "set_stall_current_for_syringe",
         ],
     )
     def test_attr_absent(self, attr: str) -> None:
@@ -60,7 +61,6 @@ class TestPlungerInitPresent:
         "attr",
         [
             "initialize",
-            "set_stall_current_for_syringe",
             "move_to_steps",
         ],
     )

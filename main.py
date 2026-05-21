@@ -12,10 +12,14 @@ section to skip it.
 
     1. Open + diagnose            (read-only)
     2. Identity / status queries  (read-only)
-    3. Stall current              (EEPROM, no motion)
-    4. initialize()               (Z = plunger + valve home)
-    5. move_to_steps()            (plunger absolute moves)
-    6. move_valve_to_port()       (valve distribution moves)
+    3. initialize()               (Z = plunger + valve home)
+    4. move_to_steps()            (plunger absolute moves)
+    5. move_valve_to_port()       (valve distribution moves)
+
+Stall current (``U200,n``) is intentionally not exercised here — it is a
+one-shot commissioning step that must match the physically installed
+syringe (per-syringe table in the SY-01B manual). See
+``claude_test/syringe_init.py`` for the dedicated bench script.
 
 Methods deliberately not shown here:
 - `initialize_valve(home_port, direction_ccw)` — valve-only init; a
@@ -88,15 +92,7 @@ def main() -> int:
             f"  ?     plunger position : {pump.query_plunger_position()} steps"
         )
 
-        # --- 3. Stall current (EEPROM, no plunger motion) ---------------
-        # Persists across power cycles; takes effect on the NEXT power-up.
-        # Operand is derived from cfg.syringe_uL via the manual's table
-        # (25 µL -> 4, 50 µL-1.25 mL -> 5, 2.5/5 mL -> 6).
-        print()
-        print(f"Setting stall current: U200,{cfg.stall_current_operand()}R")
-        pump.set_stall_current_for_syringe()
-
-        # --- 4. Initialize plunger + valve (Z) --------------------------
+        # --- 3. Initialize plunger + valve (Z) --------------------------
         # Mechanically homes both. Plunger ends at step 0; valve homes to
         # its assigned input port. force=2 (third) is the conservative pick
         # for the 125 µL bench syringe. Z (CW) vs Y (CCW) is a per-rig
@@ -113,7 +109,7 @@ def main() -> int:
             f"?6={pump.query_valve_position()!r}"
         )
 
-        # --- 5. Plunger absolute moves (A<n>R) --------------------------
+        # --- 4. Plunger absolute moves (A<n>R) --------------------------
         # move_to_steps(n) sends A<n>R and polls ? until the reported
         # position equals n. Range: 0..cfg.step_mode.full_stroke_steps
         # (12 000 in NORMAL/N0). For 125 µL, each half-step ≈ 0.0104 µL.
@@ -134,7 +130,7 @@ def main() -> int:
                 f"now ?={pump.query_plunger_position()}"
             )
 
-        # --- 6. Valve distribution moves (I<n>R / O<n>R) ----------------
+        # --- 5. Valve distribution moves (I<n>R / O<n>R) ----------------
         # move_valve_to_port(n) uses CW (I<n>R) by default; pass
         # direction_ccw=True to force CCW (O<n>R). For the user's MCC-4 on
         # a 4-way-configured pump, the two physical states correspond to

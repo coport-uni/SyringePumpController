@@ -12,10 +12,10 @@ diagnostic-flow rationale.
 Limitations:
 - Pickling nested dataclasses is unsupported (pickle resolves classes by
   qualified name and gets confused inside other classes).
-- Plunger-motion API ships ``initialize`` and ``set_stall_current_for_syringe``
-  alongside valve motion. The next-milestone symbols (``aspirate_uL``,
-  ``dispense_uL``, ``abort``, ``move_to_steps``, ``set_step_mode``) are still
-  intentionally absent and pinned by TestNoPlungerMotionExposed.
+- Plunger-motion API ships ``initialize`` and ``move_to_steps`` alongside
+  valve motion. The next-milestone symbols (``aspirate_uL``,
+  ``dispense_uL``, ``abort``, ``set_step_mode``) are still intentionally
+  absent and pinned by TestNoPlungerMotionExposed.
 """
 
 from __future__ import annotations
@@ -226,12 +226,6 @@ class SyringePumpController:
     class Config:
         """Pump configuration. Use ``SyringePumpController.Config(port=..., ...)`` or ``SyringePumpController.Config.from_toml(path)``."""
 
-        _STALL_CURRENT_TABLE: ClassVar[tuple[tuple[int, int], ...]] = (
-            (25, 4),
-            (1250, 5),
-            (5000, 6),
-        )
-
         port: str
         address: int = 1
         baud: int = 9600
@@ -268,14 +262,6 @@ class SyringePumpController:
             if isinstance(step, str):
                 kwargs["step_mode"] = SyringePumpController.StepMode(step)
             return cls(**kwargs)  # type: ignore[arg-type]
-
-        def stall_current_operand(self) -> int:
-            for upper, operand in self._STALL_CURRENT_TABLE:
-                if self.syringe_uL <= upper:
-                    return operand
-            raise ValueError(
-                f"no stall-current entry for syringe_uL={self.syringe_uL}"
-            )
 
     @dataclass(frozen=True, slots=True)
     class DiagnosticsReport:
@@ -754,20 +740,6 @@ class SyringePumpController:
         self._wait_for_valve_position(str(port), timeout_s=settle_timeout_s)
 
     # --------------------------------------------------- motion: plunger
-    def set_stall_current_for_syringe(self) -> None:
-        """Persist stall current for the configured syringe (``U200,<n>R``).
-
-        Effective on the next power-up (EEPROM-persistent); idempotent.
-        ``n`` is derived from ``Config.syringe_uL`` via the manual's table
-        (25 µL -> 4, 50 µL-1.25 mL -> 5, 2.5/5 mL -> 6).
-
-        Recovery: if a subsequent ``initialize()`` fails due to
-        backpressure, send ``U200,<n+1>R`` (raw) and retry per manual
-        precautions.
-        """
-        operand = self._config.stall_current_operand()
-        self._execute(f"U200,{operand}")
-
     def initialize(
         self,
         *,

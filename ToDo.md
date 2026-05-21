@@ -31,7 +31,7 @@ Implementation checklist for the SY-01B controller. Derived from [DESIGN.md](DES
 - [x] `StatusByte` with `busy: bool`, `error: ErrorCode`
 - [x] `ErrorCode` `IntEnum` with all codes from CLAUDE.md error table + `UNKNOWN`
 - [x] Read-only command constants: `CMD_QUERY_STATUS`, `CMD_QUERY_SOFTWARE_VERSION`, `CMD_QUERY_SERIAL_NUMBER`, `CMD_QUERY_CONFIG`, `CMD_QUERY_SUPPLY_VOLTAGE`, `CMD_QUERY_VALVE_POSITION`, `CMD_QUERY_PLUNGER_POSITION`
-- [ ] Motion builders (later commit, plunger side): `init_cw()`, `init_ccw()`, `abs_move(n)`, `rel_pickup(n)`, `rel_dispense(n)`, `set_step_mode(mode)`, `set_stall_current(n)`
+- [ ] Motion builders (later commit, plunger side): `init_cw()`, `init_ccw()`, `abs_move(n)`, `rel_pickup(n)`, `rel_dispense(n)`, `set_step_mode(mode)` (stall-current setter removed in §17 — handled out-of-band)
 - [x] Valve motion (non-distribution): `set_valve_position(I/O/B/E)` shipped via `_execute` + `wait_until_ready` on `SyringePumpController`. Distribution `valve_to(port)` deferred (MCC-4 uses non-distribution syntax).
 - [x] Reject command strings > 255 chars before they go on the wire
 - [x] No I/O, no global state in this module — easy to test exhaustively
@@ -143,3 +143,23 @@ First plunger-motion API. Lands the canonical `/1ZR` init path designed in [DESI
 - [x] HIL run produced real timings/observations → appended E7 (Z completion signal) and E8 (post-init V=4000 pps default) to [LearnedPatterns.md](LearnedPatterns.md) in CommonClaude §10 form.
 - [x] Tick §6 lines for `initialize(...)` and `set_stall_current_for_syringe()`.
 - [ ] Remaining §6 plunger-side: `aspirate_uL` / `dispense_uL` (volume↔step conversion), `abort` + `requires_reinit` latch, `set_step_mode`, `raw(cmds)`. Defer to next milestone.
+
+## 17. Stall-current removal (2026-05-18)
+
+After §16 shipped `set_stall_current_for_syringe()`, the user direction
+flipped: the bench runs one fixed syringe size and stall current is set
+out-of-band once at commissioning time. An in-driver helper that derives
+`U200,<n>` from `Config.syringe_uL` adds *more* risk than value — if the
+config value diverges from the physically installed syringe, the helper
+writes a stall current that can damage a small syringe on the next init.
+
+- [x] Remove `set_stall_current_for_syringe()` from `SyringePumpController`.
+- [x] Remove `Config._STALL_CURRENT_TABLE` and `Config.stall_current_operand()`.
+- [x] `Config.syringe_uL` field retained for future µL↔step conversion (`aspirate_uL` / `dispense_uL` in §6).
+- [x] Delete `tests/test_config.py::TestStallCurrentOperand`.
+- [x] Move `set_stall_current_for_syringe` from `TestPlungerInitPresent` to `TestNoPlungerMotionExposed` in [tests/test_plunger_motion_absent.py](tests/test_plunger_motion_absent.py).
+- [x] Drop `U200,4/5/6` rows from `test_plunger_init_frames` in [tests/test_protocol.py](tests/test_protocol.py).
+- [x] Delete `claude_test/syringe_init.py`; drop the stall-current step from `claude_test/plunger_cycle.py`.
+- [x] Drop the stall-current section from `main.py`; renumber the demo sections.
+- [x] Document hardware-protocol fact still in [CLAUDE.md](CLAUDE.md) "Stall current" section (kept as a reference table) but note the controller does not expose it.
+- [x] Update [README.md](README.md), [DESIGN.md](DESIGN.md), [claude_test/README.md](claude_test/README.md) to remove API references.

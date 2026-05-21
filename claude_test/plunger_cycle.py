@@ -1,8 +1,8 @@
 """Cycle the plunger through max (full stroke) → middle → min positions.
 
 Bench script — runs against real hardware on /dev/ttyUSB1. After running
-`diagnose()`, setting stall current, and `initialize(force=2)`, the plunger
-loops between three absolute positions (N0 / NORMAL step mode):
+`diagnose()` and `initialize(force=2)`, the plunger loops between three
+absolute positions (N0 / NORMAL step mode):
 
     max = 12 000 half-steps (full aspirate, syringe fully drawn)
     mid =  6 000 half-steps (half aspirate)
@@ -117,13 +117,6 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
             return 2
-
-        print(
-            f"setting stall current: U200,{cfg.stall_current_operand()}R "
-            f"(for {cfg.syringe_uL} µL syringe)",
-            file=sys.stderr,
-        )
-        pump.set_stall_current_for_syringe()
 
         print(
             f"initializing: Z{args.force}R (CW, force={args.force}) ...",
