@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sy01b"
-version = "0.1.0.dev0"
+version = "0.2.0.dev0"
 description = "Python controller for the Runze SY-01B Smart Syringe Pump (DT ASCII protocol over RS-232/USB-CH340)."
 readme = "README.md"
 requires-python = ">=3.12"

@@ -51,7 +51,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--cycles",
         type=int,
-        default=3,
+        default=10,
         help="Number of aspirate-dispense cycles (default 3).",
     )
     parser.add_argument(
@@ -89,7 +89,7 @@ def _build_parser() -> argparse.ArgumentParser:
         dest="delay_s",
         help="Seconds to sleep between cycles (default 0.3).",
     )
-    parser.add_argument("--port", default="/dev/ttyUSB1")
+    parser.add_argument("--port", default="/dev/ttyUSB0")
     parser.add_argument("--address", type=int, default=1)
     parser.add_argument("--baud", type=int, default=9600)
     parser.add_argument(

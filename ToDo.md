@@ -527,3 +527,47 @@ modals, and exposes the front BSP buttons. Tracked in
   Fix / Rule entry to [LearnedPatterns.md](LearnedPatterns.md).
 - [ ] Single Conventional Commits commit closing #15;
   `gh pr create --base main` (no stacking after the §21 sting).
+
+## 23. Repo hygiene cleanup + beginner code-review guide (2026-06-01, #17)
+
+Pre-handoff cleanup for an external code review, plus a non-developer
+onboarding doc. No `src/sy01b/` or `server/` behaviour changed — this
+is working-tree hygiene and documentation only. Read-only diagnose
+exemption (LP W1) does not apply since files were modified; full §4
+task management tracked here. GitHub issue + branch + PR pending user
+go-ahead (outward-facing actions held per the standing confirm-first
+rule — see open question at the bottom).
+
+- [x] Audit for dead code across `src/`, `server/`, `main.py`, `cli/`.
+  Conclusion: no removable dead code — `wait_until_ready` and
+  `set_valve_position` have no in-repo caller but are intentionally
+  retained (documented rationale + pinned by `TestNoPlungerMotionExposed`
+  / referenced by tests). Left untouched.
+- [x] Restore the production test suite to `tests/` (working tree had
+  deleted `tests/` and dropped an identical copy under
+  `claude_test/tests/`). Removed the duplicate; `pytest` discovery via
+  `testpaths=["tests"]` works again. Realigns with CLAUDE.md §3 /
+  CommonClaude §3 (production tests in `tests/`, bench scripts in
+  `claude_test/`).
+- [x] Add `server/pump.toml` to `.gitignore` — the file's own header
+  claims it is git-excluded but `.gitignore` did not list it; keeps
+  local bench config (device path, LAN IP) out of commits.
+  `server/pump.toml.example` stays tracked.
+- [x] Bump `pyproject.toml` version `0.1.0.dev0` → `0.2.0.dev0` to
+  match `SyringePumpController.__version__` and CLAUDE.md §14
+  ("Currently 0.2.0.dev0"); pyproject was the lone stale outlier.
+- [x] Write [CODE_REVIEW_GUIDE.ko.md](CODE_REVIEW_GUIDE.ko.md) — a
+  Korean, non-developer-oriented onboarding guide (10 Mermaid diagrams:
+  4-layer architecture, end-to-end sequence, repo map, plunger/valve,
+  µL↔step, DT ASCII frame, safety-first flow, firmware FSM, review
+  order; plus a glossary). Korean per user decision; this is an
+  onboarding/explainer doc, distinct from English repo docs.
+- [x] Verify: `pytest` 145 passed · `ruff format --check` clean ·
+  `mypy` clean. Pre-existing `ruff` I001 in `tests/server/conftest.py`
+  is HEAD-state and a local ruff-version drift (`server` not seen as
+  first-party); left as-is rather than churn import order against the
+  pinned toolchain.
+- [x] `gh issue create` for this cleanup → [#17](https://github.com/coport-uni/SyringePumpController/issues/17).
+- [ ] (Pending user go-ahead) Cut a `chore/<...>` branch from `main`,
+  single Conventional Commits commit, `gh pr create --base main`
+  closing #17 per CLAUDE.md §4 / §12 / §15.

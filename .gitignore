@@ -19,3 +19,6 @@ coverage.xml
 
 *.swp
 .DS_Store
+
+# Local bench config (copy server/pump.toml.example and edit per machine)
+server/pump.toml
