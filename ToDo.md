@@ -602,3 +602,42 @@ rule — see open question at the bottom).
   [#1](https://github.com/kkhyunhho/SyringePumpController/issues/1).
 - [x] PR opened against `kkhyunhho/main` closing #1
   (see commit on `fix/pump-toml-example-step-mode`).
+
+## 25. Fix non-existent esp-box-3 version pin in firmware (2026-06-01, #4)
+
+- [x] Identify bug:
+  [firmware/main/idf_component.yml](firmware/main/idf_component.yml)
+  pinned `espressif/esp-box-3: "^4.0"` but the component registry
+  (https://components.espressif.com/api/components/espressif/esp-box-3)
+  only ships versions up through `3.2.0` — major `4.x` does not exist.
+  Result: any fresh `idf.py menuconfig` / `build` fails with
+  `Version solving failed: no versions of espressif/esp-box-3 match ^4.0`.
+  This is the second instance of the [pump.toml.example NORMAL bug
+  (§24)](#24-fix-invalid-step_mode-in-serverpump-toml-example-2026-06-01-1)
+  pattern: an environment-specific value that was never verified by
+  running the full toolchain end-to-end on a fresh container.
+- [x] Apply local fix on branch `fix/firmware-esp-box-3-version` (cut
+  from updated `origin/main` after PR #2 merged):
+  `^4.0` → `^3.2` — uncommitted, pending build/flash verification.
+- [ ] Verify with `idf.py menuconfig` → `idf.py build` → `idf.py flash`
+  on real ESP32-S3-BOX-3. If `v3.x` API differs from the code's
+  expectations (compile errors), step the pin down further (`^3.0` or
+  pin a specific known-good version) and re-verify.
+- [x] `gh issue create` →
+  [#4](https://github.com/kkhyunhho/SyringePumpController/issues/4).
+  Created after build/flash verification confirmed `^3.2` + cjson
+  + `CONFIG_ESP_MAIN_TASK_STACK_SIZE=12288` produce a binary that boots
+  on real ESP32-S3-BOX-3 hardware. Original deferral noted earlier
+  in §25 stands as record of the decision sequence.
+- [ ] Commit (`firmware/main/idf_component.yml`,
+  `firmware/main/CMakeLists.txt`) on branch
+  `fix/firmware-esp-box-3-version` and open PR closing #4.
+- [ ] After landing, consider whether a CI gate (lightweight
+  `idf.py reconfigure` smoke check in a container) would have caught
+  this. Today's CI is Python-only; firmware build is left to bench
+  flashing, which is exactly how this drifted.
+- [ ] Also: untracked file `firmware/DeviceChange.ps1` (Windows
+  PowerShell helper for clearing ESP-IDF VS Code extension's stale
+  OpenOCD adapter-serial cache, per its own SYNOPSIS) showed up during
+  this session. Not authored here, predates this work, left untracked.
+  Separate decision whether to track it as a documented utility.

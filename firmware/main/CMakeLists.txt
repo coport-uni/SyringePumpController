@@ -13,5 +13,5 @@ idf_component_register(
         esp_event
         esp_netif
         esp_http_client
-        json
+        espressif__cjson
 )
