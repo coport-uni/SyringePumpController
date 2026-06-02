@@ -629,9 +629,11 @@ rule — see open question at the bottom).
   + `CONFIG_ESP_MAIN_TASK_STACK_SIZE=12288` produce a binary that boots
   on real ESP32-S3-BOX-3 hardware. Original deferral noted earlier
   in §25 stands as record of the decision sequence.
-- [ ] Commit (`firmware/main/idf_component.yml`,
-  `firmware/main/CMakeLists.txt`) on branch
-  `fix/firmware-esp-box-3-version` and open PR closing #4.
+- [x] Commit `00d92e5` (`firmware/main/idf_component.yml`,
+  `firmware/main/CMakeLists.txt`, this ToDo entry) on branch
+  `fix/firmware-esp-box-3-version`, pushed to fork.
+- [x] PR opened against `kkhyunhho/main` closing #4 →
+  [#5](https://github.com/kkhyunhho/SyringePumpController/pull/5).
 - [ ] After landing, consider whether a CI gate (lightweight
   `idf.py reconfigure` smoke check in a container) would have caught
   this. Today's CI is Python-only; firmware build is left to bench
@@ -641,3 +643,46 @@ rule — see open question at the bottom).
   OpenOCD adapter-serial cache, per its own SYNOPSIS) showed up during
   this session. Not authored here, predates this work, left untracked.
   Separate decision whether to track it as a documented utility.
+
+## 26. Auto-advance NEEDS_INIT → READY in Phase B firmware (2026-06-01, #6)
+
+- [x] Diagnose: Phase B skeleton (commit `821e736`) had no transition
+  *out* of `APP_STATE_NEEDS_INIT`. After a successful boot-time
+  `pump_diagnose`, the FSM parks at NEEDS_INIT and the amber banner
+  stays even after an external `POST /v1/initialize` drives the pump
+  to OK. UI Status tab gets the correct underlying values (`valve =
+  "4"`, `error_name = "OK"`, `error_code = 0`) but the banner is
+  misleading. Phase C wires the on-screen Initialize button + motion
+  FSM; Phase C currently doesn't build (LVGL 9.x rewrite outstanding),
+  so a minimal Phase B-side patch is the right shape.
+- [x] Add `APP_STATE_READY` to
+  [firmware/main/state.h](firmware/main/state.h) FSM enum; update the
+  header doc to reflect that Phase B auto-advances via /v1/status
+  rather than via an Initialize button.
+- [x] In [firmware/main/state.c](firmware/main/state.c)
+  `state_update_status`, add a transition guard: if current state is
+  `APP_STATE_NEEDS_INIT` AND `error_code == 0` AND
+  `s_status.valve` is not `"?"` and not empty, advance to
+  `APP_STATE_READY`. `pump_busy` is deliberately ignored — firmware
+  8.33 latches it true permanently after the first valve home
+  (LearnedPatterns E5). All under the same mutex as the status-cache
+  update so FSM + snapshot stay coherent.
+- [x] In [firmware/main/main.c](firmware/main/main.c)
+  `apply_ui_state`, add `case APP_STATE_READY: text = "Ready"`.
+- [x] In [firmware/main/ui.c](firmware/main/ui.c) `ui_apply_state`,
+  add `case APP_STATE_READY` with `lv_palette_main(LV_PALETTE_GREEN)`.
+- [ ] Build + flash verification: `idf.py build flash monitor` →
+  banner should flip amber → green within one 2 s polling cycle after
+  the next `POST /v1/initialize`.
+- [x] `gh issue create` →
+  [#6](https://github.com/kkhyunhho/SyringePumpController/issues/6).
+- [ ] Commit + PR closing #6 (and likely combined with the §25 commit
+  on `fix/firmware-esp-box-3-version` since both are local-only and
+  the branch is unmerged).
+- [ ] Audit findings noted but NOT fixed in this round (separate
+  follow-ups): (a) WiFi reconnect doesn't re-run `pump_diagnose` so
+  banner stays "Diagnosing" after reconnect; (b) boot-time diagnose
+  failure has no retry path; (c) `status_task` doesn't escalate
+  repeated `pump_status` failures into `ERROR_RECOVERABLE`; (d) UI
+  status-table row indices are magic numbers parallel to
+  `STATUS_ROW_NAMES[]`.

@@ -38,7 +38,8 @@ static pump_cmd_t s_last_cmd = {.kind = PUMP_CMD_NONE};
 typedef struct {
     app_state_t state;
     bool requires_reinit;
-    char banner[64];
+    char banner[160]; /* must fit app_status_t.error_msg (128) or a
+                       * "Fatal: re-init required"-style literal. */
     app_status_t snap;
 } ui_state_msg_t;
 

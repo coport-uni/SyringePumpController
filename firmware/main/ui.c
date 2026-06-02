@@ -193,11 +193,21 @@ static void create_move_tab(lv_obj_t *parent)
                         LV_EVENT_CLICKED, NULL);
 }
 
-/* ----------------------------------------------------------------- Prime */
-static void prime_confirm_cb(lv_event_t *e)
+/* ----------------------------------------------------------------- Prime
+ *
+ * LVGL 9.x dropped the all-in-one ``lv_msgbox_create(parent, title,
+ * body, btns, close)`` signature and ``lv_msgbox_get_active_btn_text``;
+ * we now build the modal piecewise and attach a click handler to each
+ * footer button. The handler identifies which button was pressed by
+ * reading its child label. ``user_data`` carries the modal pointer so
+ * we can close it from the handler.
+ */
+static void prime_button_cb(lv_event_t *e)
 {
-    lv_obj_t *modal = lv_event_get_current_target(e);
-    const char *txt = lv_msgbox_get_active_btn_text(modal);
+    lv_obj_t *btn = lv_event_get_target(e);
+    lv_obj_t *modal = (lv_obj_t *)lv_event_get_user_data(e);
+    lv_obj_t *label = lv_obj_get_child(btn, 0);
+    const char *txt = label ? lv_label_get_text(label) : NULL;
     if (txt != NULL && strcmp(txt, "Start") == 0) {
         pump_cmd_t cmd = {
             .kind = PUMP_CMD_PRIME,
@@ -213,13 +223,15 @@ static void prime_btn_event_cb(lv_event_t *e)
     if (lv_event_get_code(e) != LV_EVENT_CLICKED) {
         return;
     }
-    static const char *btns[] = {"Start", "Cancel", ""};
-    lv_obj_t *modal = lv_msgbox_create(NULL, "Prime line",
-                                       "Run one prime cycle:\n"
-                                       "port 3 (source) → port 1 (sink)\n"
-                                       "Full-stroke aspirate + dispense.",
-                                       btns, false);
-    lv_obj_add_event_cb(modal, prime_confirm_cb, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_t *modal = lv_msgbox_create(NULL);
+    lv_msgbox_add_title(modal, "Prime line");
+    lv_msgbox_add_text(modal, "Run one prime cycle:\n"
+                              "port 3 (source) → port 1 (sink)\n"
+                              "Full-stroke aspirate + dispense.");
+    lv_obj_t *start = lv_msgbox_add_footer_button(modal, "Start");
+    lv_obj_t *cancel = lv_msgbox_add_footer_button(modal, "Cancel");
+    lv_obj_add_event_cb(start, prime_button_cb, LV_EVENT_CLICKED, modal);
+    lv_obj_add_event_cb(cancel, prime_button_cb, LV_EVENT_CLICKED, modal);
     lv_obj_center(modal);
 }
 
@@ -235,7 +247,9 @@ static void create_prime_tab(lv_obj_t *parent)
     lv_obj_add_event_cb(s_prime_btn, prime_btn_event_cb, LV_EVENT_CLICKED,
                         NULL);
 
-    s_prime_spinner = lv_spinner_create(parent, 1000, 60);
+    /* LVGL 9.x split the animation params out of lv_spinner_create. */
+    s_prime_spinner = lv_spinner_create(parent);
+    lv_spinner_set_anim_params(s_prime_spinner, 1000, 60);
     lv_obj_set_size(s_prime_spinner, 80, 80);
     lv_obj_align(s_prime_spinner, LV_ALIGN_CENTER, 0, -20);
     lv_obj_add_flag(s_prime_spinner, LV_OBJ_FLAG_HIDDEN);
@@ -432,11 +446,17 @@ void ui_apply_motion_snapshot(const app_status_t *status)
 }
 
 /* ----------------------------------------------------------------- Error modal
+ *
+ * Same LVGL 9.x adaptation as the Prime modal: build piecewise, attach
+ * a click handler per footer button, identify the button by its child
+ * label text.
  */
 static void modal_event_cb(lv_event_t *e)
 {
-    lv_obj_t *modal = lv_event_get_current_target(e);
-    const char *txt = lv_msgbox_get_active_btn_text(modal);
+    lv_obj_t *btn = lv_event_get_target(e);
+    lv_obj_t *modal = (lv_obj_t *)lv_event_get_user_data(e);
+    lv_obj_t *label = lv_obj_get_child(btn, 0);
+    const char *txt = label ? lv_label_get_text(label) : NULL;
     if (txt == NULL) {
         lv_msgbox_close(modal);
         s_modal = NULL;
@@ -452,6 +472,7 @@ static void modal_event_cb(lv_event_t *e)
         };
         enqueue_or_toast(&cmd, "Pump busy");
     }
+    /* "Dismiss" and any other label: just close. */
     lv_msgbox_close(modal);
     s_modal = NULL;
 }
@@ -467,10 +488,6 @@ void ui_show_error_modal(const pump_error_t *err)
         ESP_LOGW(TAG, "modal already open, dropping: %s", err->error_name);
         return;
     }
-    static const char *recover_btns[] = {"Retry", "Dismiss", ""};
-    static const char *fatal_btns[] = {"Re-initialize", ""};
-    const char **btns =
-        (err->klass == PUMP_ERROR_FATAL) ? fatal_btns : recover_btns;
 
     char body[280];
     snprintf(body, sizeof(body), "%s (code %d, HTTP %d)\n%s\n%s%s%s",
@@ -479,11 +496,22 @@ void ui_show_error_modal(const pump_error_t *err)
              err->command[0] != '\0' ? err->command : "",
              err->command[0] != '\0' ? "\n" : "");
 
-    s_modal = lv_msgbox_create(
-        NULL,
-        err->klass == PUMP_ERROR_FATAL ? "Fatal pump error" : "Pump error",
-        body, btns, false);
-    lv_obj_add_event_cb(s_modal, modal_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
+    s_modal = lv_msgbox_create(NULL);
+    lv_msgbox_add_title(s_modal, err->klass == PUMP_ERROR_FATAL
+                                     ? "Fatal pump error"
+                                     : "Pump error");
+    lv_msgbox_add_text(s_modal, body);
+
+    if (err->klass == PUMP_ERROR_FATAL) {
+        lv_obj_t *reinit =
+            lv_msgbox_add_footer_button(s_modal, "Re-initialize");
+        lv_obj_add_event_cb(reinit, modal_event_cb, LV_EVENT_CLICKED, s_modal);
+    } else {
+        lv_obj_t *retry = lv_msgbox_add_footer_button(s_modal, "Retry");
+        lv_obj_t *dismiss = lv_msgbox_add_footer_button(s_modal, "Dismiss");
+        lv_obj_add_event_cb(retry, modal_event_cb, LV_EVENT_CLICKED, s_modal);
+        lv_obj_add_event_cb(dismiss, modal_event_cb, LV_EVENT_CLICKED, s_modal);
+    }
     lv_obj_center(s_modal);
 }
 

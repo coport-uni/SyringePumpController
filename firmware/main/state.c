@@ -160,6 +160,19 @@ void state_update_status(const char *valve, int plunger_steps, bool pump_busy,
     copy_str(s_status.pump_error_name, sizeof(s_status.pump_error_name),
              error_name);
     s_status.pump_error_code = error_code;
+
+    /* Auto-advance NEEDS_INIT → READY when an external client (curl,
+     * browser, or another LAN device) drove POST /v1/initialize
+     * directly, bypassing our pump_task. status_task polling sees the
+     * resulting error_code == 0 and valve != "?" here; without this
+     * transition the banner would stay amber even though the pump is
+     * fully homed. pump_busy is ignored — firmware 8.33 latches it
+     * true after the first valve home (LearnedPatterns E5). */
+    bool valve_homed =
+        s_status.valve[0] != '\0' && s_status.valve[0] != '?';
+    if (s_state == APP_STATE_NEEDS_INIT && error_code == 0 && valve_homed) {
+        s_state = APP_STATE_READY;
+    }
     unlock();
 }
 
