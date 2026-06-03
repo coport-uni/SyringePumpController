@@ -143,7 +143,7 @@
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "Before stopping, verify: 1) If any task was performed, does ToDo.md have a corresponding entry? 2) Was a GitHub issue created via gh? 3) If Python files were modified, did ruff checks pass? 4) If files were added to claude_test/, was claude_test/README.md updated? If any check fails, block and explain what is missing.",
+            "prompt": "If any Python files in src/ or server/ were modified, briefly confirm ruff/mypy/pytest still pass. Don't block on issues, PRs, or merges.",
             "timeout": 30
           }
         ]

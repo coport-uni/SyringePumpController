@@ -12,6 +12,12 @@
 
 static const char *TAG = "ui";
 
+/* Custom Montserrat-14 font with ASCII (0x20-0x7E) + micro sign (0xB5).
+ * Generated via the LVGL Font Converter from Montserrat-Regular.ttf and
+ * checked in as ``firmware/main/montserrat_14_ext.c``. Needed because
+ * the built-in lv_font_montserrat_14 does not include U+00B5 (µ). */
+LV_FONT_DECLARE(montserrat_14_ext);
+
 #define STATUS_ROW_COUNT     7
 #define DEFAULT_SYRINGE_UL   125
 #define DEFAULT_STROKE_STEPS 12000
@@ -27,9 +33,10 @@ static int s_active_valve_port = -1;
 /* Move tab */
 static lv_obj_t *s_move_slider;
 static lv_obj_t *s_move_target_label;
-static lv_obj_t *s_move_current_label;
+static lv_obj_t *s_move_valve_label;   /* "Connected: Port N" */
 static lv_obj_t *s_move_aspirate_btn;
 static lv_obj_t *s_move_dispense_btn;
+static lv_obj_t *s_move_history_label; /* "Last: Aspirated N µL from Port M" */
 
 /* Prime tab */
 static lv_obj_t *s_prime_btn;
@@ -123,16 +130,32 @@ static void move_slider_event_cb(lv_event_t *e)
     }
 }
 
+static void move_history_set(const char *text)
+{
+    if (s_move_history_label != NULL) {
+        lv_label_set_text(s_move_history_label, text);
+    }
+}
+
 static void aspirate_btn_event_cb(lv_event_t *e)
 {
     if (lv_event_get_code(e) != LV_EVENT_CLICKED) {
         return;
     }
+    int vol = slider_target_uL();
     pump_cmd_t cmd = {
         .kind = PUMP_CMD_ASPIRATE,
-        .payload.volume = {.target_uL = (float)slider_target_uL()},
+        .payload.volume = {.target_uL = (float)vol},
     };
     enqueue_or_toast(&cmd, "Pump busy");
+    char buf[80];
+    if (s_active_valve_port > 0) {
+        snprintf(buf, sizeof(buf), "Last: Aspirated %d µL from Port %d", vol,
+                 s_active_valve_port);
+    } else {
+        snprintf(buf, sizeof(buf), "Last: Aspirated %d µL", vol);
+    }
+    move_history_set(buf);
 }
 
 static void dispense_btn_event_cb(lv_event_t *e)
@@ -140,11 +163,20 @@ static void dispense_btn_event_cb(lv_event_t *e)
     if (lv_event_get_code(e) != LV_EVENT_CLICKED) {
         return;
     }
+    int vol = slider_target_uL();
     pump_cmd_t cmd = {
         .kind = PUMP_CMD_DISPENSE,
-        .payload.volume = {.target_uL = (float)slider_target_uL()},
+        .payload.volume = {.target_uL = (float)vol},
     };
     enqueue_or_toast(&cmd, "Pump busy");
+    char buf[80];
+    if (s_active_valve_port > 0) {
+        snprintf(buf, sizeof(buf), "Last: Dispensed to %d µL via Port %d", vol,
+                 s_active_valve_port);
+    } else {
+        snprintf(buf, sizeof(buf), "Last: Dispensed to %d µL", vol);
+    }
+    move_history_set(buf);
 }
 
 static void create_move_tab(lv_obj_t *parent)
@@ -160,12 +192,15 @@ static void create_move_tab(lv_obj_t *parent)
     s_move_slider = lv_slider_create(parent);
     lv_slider_set_range(s_move_slider, 0, DEFAULT_SYRINGE_UL);
     lv_slider_set_value(s_move_slider, 0, LV_ANIM_OFF);
-    lv_obj_set_width(s_move_slider, LV_PCT(95));
+    /* 92% width + 10 px left margin keeps the slider knob fully on-screen
+     * at value 0 (the knob extends past the bar by half its size). */
+    lv_obj_set_width(s_move_slider, LV_PCT(92));
+    lv_obj_set_style_margin_left(s_move_slider, 10, LV_PART_MAIN);
     lv_obj_add_event_cb(s_move_slider, move_slider_event_cb,
                         LV_EVENT_VALUE_CHANGED, NULL);
 
-    s_move_current_label = lv_label_create(parent);
-    lv_label_set_text(s_move_current_label, "Current: -- µL");
+    s_move_valve_label = lv_label_create(parent);
+    lv_label_set_text(s_move_valve_label, "Connected: Port --");
 
     lv_obj_t *btn_row = lv_obj_create(parent);
     lv_obj_set_style_pad_all(btn_row, 0, LV_PART_MAIN);
@@ -191,6 +226,12 @@ static void create_move_tab(lv_obj_t *parent)
     lv_obj_center(dl);
     lv_obj_add_event_cb(s_move_dispense_btn, dispense_btn_event_cb,
                         LV_EVENT_CLICKED, NULL);
+
+    /* History line at the bottom — updated on every enqueue. */
+    s_move_history_label = lv_label_create(parent);
+    lv_label_set_text(s_move_history_label, "Last: --");
+    lv_obj_set_style_text_color(s_move_history_label,
+                                lv_palette_main(LV_PALETTE_GREY), LV_PART_MAIN);
 }
 
 /* ----------------------------------------------------------------- Prime
@@ -319,6 +360,10 @@ static void apply_motion_enabled(bool enabled)
  */
 void ui_create(void)
 {
+    /* Make every label / table / button label render with the µ-capable
+     * font by default. Children of the active screen inherit the style. */
+    lv_obj_set_style_text_font(lv_scr_act(), &montserrat_14_ext, LV_PART_MAIN);
+
     s_banner = lv_label_create(lv_scr_act());
     lv_obj_set_size(s_banner, LV_PCT(100), 24);
     lv_obj_align(s_banner, LV_ALIGN_TOP_MID, 0, 0);
@@ -332,6 +377,11 @@ void ui_create(void)
     lv_tabview_set_tab_bar_size(s_tabview, 32);
     lv_obj_set_size(s_tabview, LV_PCT(100), 216);
     lv_obj_align(s_tabview, LV_ALIGN_BOTTOM_MID, 0, 0);
+
+    /* Disable horizontal swipe on the tab content so tab switching only
+     * happens via the top tab bar (touch-on-tab-name). */
+    lv_obj_remove_flag(lv_tabview_get_content(s_tabview),
+                       LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t *valve_tab = lv_tabview_add_tab(s_tabview, "Valve");
     lv_obj_t *move_tab = lv_tabview_add_tab(s_tabview, "Move");
@@ -437,11 +487,17 @@ void ui_apply_motion_snapshot(const app_status_t *status)
     } else {
         valve_highlight_port(-1);
     }
-    /* Move tab — Current label converted back to µL. */
-    if (s_move_current_label != NULL) {
-        float uL = (float)status->plunger_steps * (float)DEFAULT_SYRINGE_UL /
-                   (float)DEFAULT_STROKE_STEPS;
-        lv_label_set_text_fmt(s_move_current_label, "Current: %.1f µL", uL);
+    /* Move tab — "Connected: Port N" mirrors the cached valve position
+     * so operators know which port any subsequent aspirate / dispense
+     * will pull from / push to. */
+    if (s_move_valve_label != NULL) {
+        if (status->valve[0] >= '1' && status->valve[0] <= '4' &&
+            status->valve[1] == '\0') {
+            lv_label_set_text_fmt(s_move_valve_label, "Connected: Port %c",
+                                  status->valve[0]);
+        } else {
+            lv_label_set_text(s_move_valve_label, "Connected: Port --");
+        }
     }
 }
 
