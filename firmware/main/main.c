@@ -38,7 +38,8 @@ static pump_cmd_t s_last_cmd = {.kind = PUMP_CMD_NONE};
 typedef struct {
     app_state_t state;
     bool requires_reinit;
-    char banner[64];
+    char banner[160]; /* must fit app_status_t.error_msg (128) or a
+                       * "Fatal: re-init required"-style literal. */
     app_status_t snap;
 } ui_state_msg_t;
 
@@ -108,6 +109,18 @@ static void show_error_modal_async(void *arg)
 
 static void schedule_error_modal(const pump_error_t *err)
 {
+    /* Transport-level failures (server unreachable, TCP reset, JSON
+     * parse failure) have ``http_status == 0`` because no HTTP response
+     * was received. Suppress the modal in that case — the banner
+     * already turns red and the Status tab's Reconnect button is the
+     * recovery path. The modal is only useful for *pump-side* errors
+     * the server actually reported, e.g. PlungerOverloadError. */
+    if (err->http_status == 0) {
+        ESP_LOGW(TAG, "transport-level error (http_status=0), modal "
+                      "suppressed: %s",
+                 err->error_name[0] != '\0' ? err->error_name : "(unnamed)");
+        return;
+    }
     pump_error_t *copy = malloc(sizeof(*copy));
     if (copy == NULL) {
         ESP_LOGE(TAG, "error modal: oom");
@@ -175,6 +188,7 @@ static esp_err_t run_diagnose_once(void)
     if (!diag.ok_to_initialize) {
         ESP_LOGW(TAG, "diagnose says NOT ok_to_initialize");
     }
+    state_set_pump_config(diag.syringe_uL, diag.stroke_steps);
     state_set_needs_init(diag.software_version, diag.supply_volts);
     state_update_status(diag.valve_position, diag.plunger_steps, false,
                         diag.pre_init_error_name, diag.pre_init_error_code);
@@ -186,8 +200,11 @@ static esp_err_t run_diagnose_once(void)
 
 static void save_last_cmd(const pump_cmd_t *cmd)
 {
-    if (cmd->kind == PUMP_CMD_RETRY_LAST) {
-        return; /* don't overwrite */
+    if (cmd->kind == PUMP_CMD_RETRY_LAST || cmd->kind == PUMP_CMD_DIAGNOSE) {
+        /* Don't overwrite — RETRY_LAST is the retry path itself, and
+         * DIAGNOSE isn't a motion command so the Retry-modal shouldn't
+         * replay it. */
+        return;
     }
     xSemaphoreTake(s_last_cmd_mtx, portMAX_DELAY);
     s_last_cmd = *cmd;
@@ -274,6 +291,31 @@ static void handle_move_steps(const pump_cmd_t *cmd)
     }
 }
 
+/**
+ * Re-run ``GET /v1/diagnose`` on demand (triggered by the Status tab's
+ * Reconnect button). On success, ``state_set_needs_init`` followed by
+ * ``state_update_status`` lets the existing NEEDS_INIT → READY
+ * auto-advance kick in if the pump is already homed; otherwise the
+ * banner stays amber until the operator initialises. On failure, the
+ * recoverable-error path keeps the Reconnect button reachable for
+ * another retry.
+ */
+static void handle_diagnose(void)
+{
+    pump_diag_t diag;
+    state_set_diagnosing();
+    schedule_ui_refresh();
+    esp_err_t err = pump_diagnose(&diag);
+    if (err != ESP_OK) {
+        state_set_error_recoverable("diagnose failed — check server");
+        return;
+    }
+    state_set_pump_config(diag.syringe_uL, diag.stroke_steps);
+    state_set_needs_init(diag.software_version, diag.supply_volts);
+    state_update_status(diag.valve_position, diag.plunger_steps, false,
+                        diag.pre_init_error_name, diag.pre_init_error_code);
+}
+
 static void handle_prime(const pump_cmd_t *cmd)
 {
     pump_prime_result_t res;
@@ -322,6 +364,9 @@ static void process_one(pump_cmd_t cmd)
         break;
     case PUMP_CMD_PRIME:
         handle_prime(&cmd);
+        break;
+    case PUMP_CMD_DIAGNOSE:
+        handle_diagnose();
         break;
     default:
         ESP_LOGW(TAG, "unknown cmd kind %d", (int)cmd.kind);

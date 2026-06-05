@@ -388,6 +388,20 @@ class SyringePumpController:
     def address(self) -> int:
         return self._address
 
+    @property
+    def config(self) -> SyringePumpController.Config:
+        """Read-only access to the operator-supplied ``Config``.
+
+        The server's ``/v1/diagnose`` endpoint surfaces ``syringe_uL``
+        and the step-mode's full-stroke step count to the firmware via
+        this property so the ESP32 UI can size its volume slider
+        without hard-coding a bench-specific default. ``FakePump`` in
+        ``tests/server/conftest.py`` already exposes ``config``
+        publicly; this property closes the asymmetry between the fake
+        and the real driver.
+        """
+        return self._config
+
     # ---------------------------------------------------- pure static helpers
     @staticmethod
     def format_address(address: int) -> bytes:

@@ -6,6 +6,7 @@ idf_component_register(
         "pump_client.c"
         "state.c"
         "ui.c"
+        "montserrat_14_ext.c"
     INCLUDE_DIRS "."
     REQUIRES
         nvs_flash
@@ -13,5 +14,5 @@ idf_component_register(
         esp_event
         esp_netif
         esp_http_client
-        json
+        espressif__cjson
 )

@@ -53,6 +53,13 @@ typedef struct {
     char last_error_name[40];
     char last_error_message[160];
     int last_error_code;
+    /* Server-reported pump configuration — let the UI size the volume
+     * slider against the actual installed syringe instead of a
+     * compile-time default. Initialised to 0 until the first diagnose
+     * response lands; the UI falls back to its own default for the
+     * pre-diagnose window. */
+    float syringe_uL;
+    int stroke_steps;
 } app_status_t;
 
 void state_init(void);
@@ -67,6 +74,9 @@ void state_set_wifi_connected(void);
 void state_set_wifi_lost(void);
 void state_set_diagnosing(void);
 void state_set_needs_init(const char *software_version, float supply_volts);
+/** Cache pump configuration learned from /v1/diagnose so the UI can
+ * size widgets against the installed syringe instead of a default. */
+void state_set_pump_config(float syringe_uL, int stroke_steps);
 void state_set_ready(void);
 void state_set_busy(void);
 void state_set_error_recoverable(const char *msg);
