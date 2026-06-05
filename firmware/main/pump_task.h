@@ -22,6 +22,10 @@ typedef enum {
     PUMP_CMD_DISPENSE,
     PUMP_CMD_MOVE_STEPS,
     PUMP_CMD_PRIME,
+    /** Re-runs ``GET /v1/diagnose`` from the Status tab's Reconnect
+     *  button. Used to recover from a transient server outage when
+     *  boot-time diagnose failed. */
+    PUMP_CMD_DIAGNOSE,
     /** Replays the last enqueued non-retry command (for "Retry"
      *  modals on recoverable errors). */
     PUMP_CMD_RETRY_LAST,

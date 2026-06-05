@@ -42,9 +42,10 @@ esp_err_t pump_client_init(void)
  * populated so the caller can parse an error envelope), or the
  * underlying transport ``esp_err_t``.
  */
-static esp_err_t http_perform(esp_http_client_method_t method, const char *path,
-                              const char *body, char *out, size_t out_cap,
-                              int *status_out)
+static esp_err_t http_perform_ex(esp_http_client_method_t method,
+                                 const char *path, const char *body, char *out,
+                                 size_t out_cap, int *status_out,
+                                 int timeout_ms)
 {
     if (status_out != NULL) {
         *status_out = 0;
@@ -55,7 +56,7 @@ static esp_err_t http_perform(esp_http_client_method_t method, const char *path,
 
     esp_http_client_config_t cfg = {
         .url = url,
-        .timeout_ms = CONFIG_PUMP_HTTP_TIMEOUT_MS,
+        .timeout_ms = timeout_ms,
         .method = method,
     };
     esp_http_client_handle_t client = esp_http_client_init(&cfg);
@@ -111,6 +112,18 @@ static esp_err_t http_perform(esp_http_client_method_t method, const char *path,
         return ESP_FAIL;
     }
     return ESP_OK;
+}
+
+/* Convenience wrapper using the default Kconfig timeout — fine for
+ * short calls (status, diagnose, valve, single aspirate/dispense).
+ * Long-running endpoints (prime) call ``http_perform_ex`` directly
+ * with a longer per-call timeout. */
+static esp_err_t http_perform(esp_http_client_method_t method, const char *path,
+                              const char *body, char *out, size_t out_cap,
+                              int *status_out)
+{
+    return http_perform_ex(method, path, body, out, out_cap, status_out,
+                           CONFIG_PUMP_HTTP_TIMEOUT_MS);
 }
 
 static void copy_json_str(cJSON *parent, const char *field, char *dst,
@@ -229,6 +242,12 @@ esp_err_t pump_diagnose(pump_diag_t *out)
     out->supply_volts = json_float(root, "supply_volts", 0.0f);
     out->plunger_steps = json_int(root, "plunger_steps", 0);
     out->pre_init_error_code = json_int(root, "pre_init_error_code", -1);
+    /* New in this revision: syringe_uL + stroke_steps echoed by the
+     * server from its Config so the firmware UI can size sliders
+     * without a hard-coded default. Older servers omit them; the
+     * fallbacks (125 µL / 12 000 steps) match the historical bench. */
+    out->syringe_uL = json_float(root, "syringe_uL", 125.0f);
+    out->stroke_steps = json_int(root, "stroke_steps", 12000);
     copy_json_str(root, "software_version", out->software_version,
                   sizeof(out->software_version));
     copy_json_str(root, "serial_number", out->serial_number,
@@ -360,10 +379,24 @@ esp_err_t pump_prime(int cycles, int source_port, int sink_port,
              "{\"cycles\":%d,\"source_port\":%d,\"sink_port\":%d}", cycles,
              source_port, sink_port);
 
+    /* Prime is the only long-running endpoint — a full cycle is
+     * ~30 s (two full strokes + two valve moves), and the operator
+     * can request up to 20 cycles. Bump the per-call timeout well
+     * past the worst case so the connection doesn't get reset
+     * mid-prime and surface as the "HTTP -1 (no JSON body)" fallback
+     * from parse_error_body. 5 min covers 20 × 30 s with margin. */
+    int timeout_ms = (cycles > 0 ? cycles : 1) * 45000;
+    if (timeout_ms < 60000) {
+        timeout_ms = 60000;
+    }
+    if (timeout_ms > 600000) {
+        timeout_ms = 600000;
+    }
+
     char resp[MAX_RESP_LEN];
     int status = 0;
-    esp_err_t rc = http_perform(HTTP_METHOD_POST, "/v1/prime", body, resp,
-                                sizeof(resp), &status);
+    esp_err_t rc = http_perform_ex(HTTP_METHOD_POST, "/v1/prime", body, resp,
+                                   sizeof(resp), &status, timeout_ms);
     if (rc == ESP_OK) {
         if (out != NULL) {
             memset(out, 0, sizeof(*out));

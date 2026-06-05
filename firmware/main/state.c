@@ -89,6 +89,14 @@ void state_set_diagnosing(void)
     unlock();
 }
 
+void state_set_pump_config(float syringe_uL, int stroke_steps)
+{
+    lock();
+    s_status.syringe_uL = syringe_uL;
+    s_status.stroke_steps = stroke_steps;
+    unlock();
+}
+
 void state_set_needs_init(const char *software_version, float supply_volts)
 {
     lock();

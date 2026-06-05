@@ -24,6 +24,10 @@ typedef struct {
     int plunger_steps;
     char pre_init_error_name[32];
     int pre_init_error_code;
+    /* Pump configuration surfaced to the UI so sliders / labels don't
+     * hard-code a bench-specific syringe size or step mode. */
+    float syringe_uL;
+    int stroke_steps;
 } pump_diag_t;
 
 typedef struct {

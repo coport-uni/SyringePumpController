@@ -137,17 +137,6 @@
         ]
       }
     ],
-    "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "If any Python files in src/ or server/ were modified, briefly confirm ruff/mypy/pytest still pass. Don't block on issues, PRs, or merges.",
-            "timeout": 30
-          }
-        ]
-      }
-    ]
+    "Stop": []
   }
 }
