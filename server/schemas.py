@@ -23,6 +23,19 @@ class DiagnoseResponse(BaseModel):
     pre_init_error_code: int
     ok_to_initialize: bool
     warnings: list[str]
+    syringe_uL: float = Field(
+        description=(
+            "Installed syringe volume in µL, from server-side config. "
+            "Clients (e.g. ESP32 UI) use this to size volume sliders "
+            "without hard-coding a bench-specific default."
+        )
+    )
+    stroke_steps: int = Field(
+        description=(
+            "Full plunger stroke in steps for the configured step mode "
+            "(12 000 in N0/NORMAL, 96 000 in N1/N2)."
+        )
+    )
 
 
 class InitializeRequest(BaseModel):

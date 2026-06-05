@@ -39,7 +39,12 @@ def _pump(request: Request) -> Any:
     return request.app.state.pump
 
 
-@router.get("/health", response_model=HealthResponse)
+@router.get(
+    "/health",
+    response_model=HealthResponse,
+    tags=["Discovery"],
+    summary="Liveness probe",
+)
 async def health(request: Request) -> HealthResponse:
     pump = getattr(request.app.state, "pump", None)
     last = getattr(request.app.state, "last_diagnose", None)
@@ -50,7 +55,12 @@ async def health(request: Request) -> HealthResponse:
     )
 
 
-@router.get("/diagnose", response_model=DiagnoseResponse)
+@router.get(
+    "/diagnose",
+    response_model=DiagnoseResponse,
+    tags=["Discovery"],
+    summary="One-shot commissioning probe (Status tab — Reconnect)",
+)
 async def diagnose(request: Request) -> DiagnoseResponse:
     pump = _pump(request)
     async with request.app.state.pump_lock:
@@ -68,10 +78,17 @@ async def diagnose(request: Request) -> DiagnoseResponse:
         pre_init_error_code=int(report.pre_init_status.error),
         ok_to_initialize=report.ok_to_initialize,
         warnings=list(report.warnings),
+        syringe_uL=pump.config.syringe_uL,
+        stroke_steps=pump.config.step_mode.full_stroke_steps,
     )
 
 
-@router.post("/initialize", response_model=InitializeResponse)
+@router.post(
+    "/initialize",
+    response_model=InitializeResponse,
+    tags=["Motion"],
+    summary="Home plunger + valve (right BSP button / Re-initialize modal)",
+)
 async def initialize(
     req: InitializeRequest, request: Request
 ) -> InitializeResponse:
@@ -85,7 +102,12 @@ async def initialize(
     return InitializeResponse(valve=valve, plunger_steps=plunger)
 
 
-@router.post("/valve", response_model=ValveResponse)
+@router.post(
+    "/valve",
+    response_model=ValveResponse,
+    tags=["Motion"],
+    summary="Rotate valve to a port (Valve tab — port buttons)",
+)
 async def valve(req: ValveRequest, request: Request) -> ValveResponse:
     pump = _pump(request)
     async with request.app.state.pump_lock:
@@ -96,7 +118,18 @@ async def valve(req: ValveRequest, request: Request) -> ValveResponse:
     return ValveResponse(valve=position)
 
 
-@router.post("/aspirate", response_model=VolumeResponse)
+@router.post(
+    "/aspirate",
+    response_model=VolumeResponse,
+    tags=["Motion"],
+    summary="Move plunger to an absolute volume (Move tab — C Actuation)",
+    description=(
+        "Sends `A<n>R` where `n = round(target_uL / syringe_uL * stroke)`. "
+        "The wire frame is identical for fill and drain — the firmware's "
+        "single **C Actuation** button uses this endpoint for both "
+        "directions. The /dispense endpoint exists only for legacy callers."
+    ),
+)
 async def aspirate(req: VolumeRequest, request: Request) -> VolumeResponse:
     pump = _pump(request)
     async with request.app.state.pump_lock:
@@ -105,7 +138,18 @@ async def aspirate(req: VolumeRequest, request: Request) -> VolumeResponse:
     return VolumeResponse(plunger_steps=plunger, target_uL=req.target_uL)
 
 
-@router.post("/dispense", response_model=VolumeResponse)
+@router.post(
+    "/dispense",
+    response_model=VolumeResponse,
+    tags=["Low-level (deprecated)"],
+    deprecated=True,
+    summary="Alias of /aspirate (default target_uL=0 → drain to empty)",
+    description=(
+        "Identical wire frame to /aspirate for the same `target_uL`. "
+        "Kept for back-compat with older clients; new callers should "
+        "use /aspirate."
+    ),
+)
 async def dispense(req: DispenseRequest, request: Request) -> VolumeResponse:
     pump = _pump(request)
     async with request.app.state.pump_lock:
@@ -114,7 +158,19 @@ async def dispense(req: DispenseRequest, request: Request) -> VolumeResponse:
     return VolumeResponse(plunger_steps=plunger, target_uL=req.target_uL)
 
 
-@router.post("/move_steps", response_model=MoveStepsResponse)
+@router.post(
+    "/move_steps",
+    response_model=MoveStepsResponse,
+    tags=["Low-level (deprecated)"],
+    deprecated=True,
+    summary="Raw absolute step move",
+    description=(
+        "Sends `A<steps>R` directly without the µL → steps conversion. "
+        "Bypasses the syringe-size guard that /aspirate applies — "
+        "callers must respect the step-mode stroke limit themselves. "
+        "Not used by the firmware UI; kept for scripted bench use."
+    ),
+)
 async def move_steps(
     req: MoveStepsRequest, request: Request
 ) -> MoveStepsResponse:
@@ -125,14 +181,18 @@ async def move_steps(
     return MoveStepsResponse(plunger_steps=plunger)
 
 
-@router.post("/prime", response_model=PrimeResponse)
+@router.post(
+    "/prime",
+    response_model=PrimeResponse,
+    tags=["Motion"],
+    summary="Cycle source → sink at full stroke (Prime tab — PRIME button)",
+    description=(
+        "Each cycle = `valve→source, plunger→full, valve→sink, plunger→0`. "
+        "The driver lock is held for the entire sequence so other "
+        "endpoints cannot race a prime in progress."
+    ),
+)
 async def prime(req: PrimeRequest, request: Request) -> PrimeResponse:
-    """Replicate ``claude_test/prime_line.py`` over the wire.
-
-    Each cycle is 4 verified moves: valve→source, plunger→full stroke,
-    valve→sink, plunger→0. The lock is held for the whole sequence so
-    no other endpoint can race the driver during prime.
-    """
     pump = _pump(request)
     cfg: SyringePumpController.Config = request.app.state.config
     stroke = cfg.step_mode.full_stroke_steps
@@ -160,7 +220,12 @@ async def prime(req: PrimeRequest, request: Request) -> PrimeResponse:
     )
 
 
-@router.get("/status", response_model=StatusResponse)
+@router.get(
+    "/status",
+    response_model=StatusResponse,
+    tags=["Discovery"],
+    summary="Poll valve/plunger/busy/error (Status tab — 2 s loop)",
+)
 async def status(request: Request) -> StatusResponse:
     pump = _pump(request)
     async with request.app.state.pump_lock:

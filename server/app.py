@@ -53,8 +53,36 @@ def create_app(
         version="0.1.0",
         description=(
             "HTTP bridge from a remote ESP32 client to the local "
-            "SyringePumpController driver over /dev/ttyUSB1."
+            "SyringePumpController driver over /dev/ttyUSB1.\n\n"
+            "The endpoints are grouped to mirror the firmware UI: every "
+            "tab on the ESP32 maps to exactly one endpoint."
         ),
+        openapi_tags=[
+            {
+                "name": "Discovery",
+                "description": (
+                    "Read-only probes used by the firmware on boot and "
+                    "while idle. Safe to call repeatedly — never moves "
+                    "the plunger or valve."
+                ),
+            },
+            {
+                "name": "Motion",
+                "description": (
+                    "Commands surfaced as buttons in the ESP32 firmware. "
+                    "Each call holds the driver lock for the full "
+                    "operation and replies with the resulting state."
+                ),
+            },
+            {
+                "name": "Low-level (deprecated)",
+                "description": (
+                    "Lower-level conveniences kept for back-compat. The "
+                    "firmware does not use these — every UI action is "
+                    "served by the Motion endpoints above."
+                ),
+            },
+        ],
         lifespan=lifespan,
     )
     app.include_router(router)
